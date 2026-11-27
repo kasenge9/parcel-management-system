@@ -292,3 +292,107 @@ class OperationsModelValidationTests(TestCase):
         self.parcel.delete()
         self.assertFalse(TrackingEvent.objects.filter(pk=event.pk).exists())
         self.assertFalse(Parcel.objects.filter(pk=parcel_id).exists())
+
+
+
+class ForeignKeyDeletionPolicyTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.origin = Branch.objects.create(name="Policy Origin", location="Mombasa")
+        cls.destination = Branch.objects.create(
+            name="Policy Destination", location="Nairobi"
+        )
+        cls.sender = Customer.objects.create(
+            full_name="Policy Sender", phone="+254711111111"
+        )
+        cls.recipient = Customer.objects.create(
+            full_name="Policy Recipient", phone="+254722222222"
+        )
+        cls.parcel = Parcel.objects.create(
+            sender=cls.sender,
+            recipient=cls.recipient,
+            description="Policy test parcel",
+            weight_kg=Decimal("2.00"),
+            origin=cls.origin,
+            destination=cls.destination,
+            delivery_fee=Decimal("50.00"),
+        )
+
+    def test_payment_protects_parcel_from_deletion(self):
+        from django.db.models import ProtectedError
+
+        Payment.objects.create(
+            parcel=self.parcel,
+            amount=Decimal("50.00"),
+            method=Payment.Method.CASH,
+        )
+        with self.assertRaises(ProtectedError):
+            self.parcel.delete()
+
+    def test_branch_is_protected_while_referenced_by_parcel(self):
+        from django.db.models import ProtectedError
+
+        with self.assertRaises(ProtectedError):
+            self.origin.delete()
+
+    def test_user_deletion_sets_tracking_and_payment_user_to_null(self):
+        user = get_user_model().objects.create_user(
+            username="recording-user", password="StrongPass!234"
+        )
+        event = TrackingEvent.objects.create(
+            parcel=self.parcel,
+            status=Parcel.Status.REGISTERED,
+            created_by=user,
+        )
+        payment = Payment.objects.create(
+            parcel=self.parcel,
+            amount=Decimal("50.00"),
+            method=Payment.Method.CASH,
+            received_by=user,
+        )
+
+        user.delete()
+        event.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertIsNone(event.created_by)
+        self.assertIsNone(payment.received_by)
+
+    def test_dispatch_deletion_cascades_to_dispatch_items(self):
+        dispatch = Dispatch.objects.create(
+            vehicle=Vehicle.objects.create(registration_number="KDB 456B"),
+            driver=Driver.objects.create(
+                full_name="Policy Driver", phone="+254733333333"
+            ),
+            origin=self.origin,
+            destination=self.destination,
+        )
+        dispatch.parcels.add(self.parcel)
+        self.assertEqual(dispatch.dispatch_items.count(), 1)
+
+        dispatch.delete()
+        self.assertFalse(
+            Dispatch.objects.filter(pk=dispatch.pk).exists()
+        )
+        self.assertFalse(
+            self.parcel.dispatch_items.exists()
+        )
+
+    def test_dispatch_item_protects_parcel_until_dispatch_is_removed(self):
+        from django.db.models import ProtectedError
+
+        dispatch = Dispatch.objects.create(
+            vehicle=Vehicle.objects.create(registration_number="KDC 789C"),
+            driver=Driver.objects.create(
+                full_name="Second Policy Driver", phone="+254744444444"
+            ),
+            origin=self.origin,
+            destination=self.destination,
+        )
+        dispatch.parcels.add(self.parcel)
+
+        with self.assertRaises(ProtectedError):
+            self.parcel.delete()
+
+        dispatch.delete()
+        self.parcel.delete()
+        self.assertFalse(Parcel.objects.filter(pk=self.parcel.pk).exists())
