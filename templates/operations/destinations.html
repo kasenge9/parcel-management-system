@@ -15,6 +15,10 @@
     {% empty %}<div class="col-12"><div class="alert alert-info">The destination directory has not been seeded yet. An administrator can run the Kenya destination seed command.</div></div>{% endfor %}
   </div>
   <hr class="my-5">
+  <h2 class="h3 mb-3">Verified courier service points</h2>
+  <p class="text-muted">These are operator-published outlets marked verified in the directory. Confirm current opening and parcel acceptance with the operator before sending a parcel.</p>
+  <div class="row g-3 mb-4">{% for point in service_points %}<div class="col-md-6 col-lg-4"><article class="content-card h-100"><h3 class="h5">{{ point.operator.name }}</h3><p class="mb-1">{{ point.town }}</p>{% if point.address %}<small class="text-muted">{{ point.address }}</small>{% endif %}<p class="mt-2 mb-0">{% if point.accepts_parcels %}Parcel acceptance listed{% else %}Parcel acceptance not confirmed{% endif %}</p><a href="{{ point.source_url }}" target="_blank" rel="noopener">Operator source</a></article></div>{% empty %}<div class="col-12"><p class="text-muted">No verified operator outlets have been added yet.</p></div>{% endfor %}</div>
+  <hr class="my-5">
   <h2 class="h3 mb-3">Published operator routes</h2>
   <p class="text-muted">Only routes marked published or directly confirmed are shown. Parcel acceptance is displayed separately and is not assumed from passenger service.</p>
   <div class="table-responsive"><table class="table align-middle">
