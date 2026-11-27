@@ -29,7 +29,8 @@
       <div class="col-md-6"><label class="form-label" for="{{ form.origin.id_for_label }}">Dispatch branch / origin</label>{{ form.origin }}{% for error in form.origin.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
       <div class="col-md-6"><label class="form-label" for="{{ form.destination_county.id_for_label }}">Destination county</label>{{ form.destination_county }}{% for error in form.destination_county.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
       <div class="col-md-6"><label class="form-label" for="{{ form.destination_town.id_for_label }}">Destination town</label>{{ form.destination_town }}{% for error in form.destination_town.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
-      <div class="col-md-6"><label class="form-label" for="{{ form.operator_route.id_for_label }}">Delivery operator / route (optional)</label>{{ form.operator_route }}{% for error in form.operator_route.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}<small class="text-muted">Only active routes confirmed for parcel service are selectable. If none applies, leave this blank and assign a route later.</small></div>
+      <div class="col-md-6"><label class="form-label" for="{{ form.operator_service_point.id_for_label }}">Receiving courier service point (optional)</label>{{ form.operator_service_point }}{% for error in form.operator_service_point.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}<small class="text-muted">Only verified receiving points that accept parcels are selectable.</small></div>
+      <div class="col-md-6"><label class="form-label" for="{{ form.operator_route.id_for_label }}">Delivery operator / route (optional)</label>{{ form.operator_route }}{% for error in form.operator_route.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}<small class="text-muted">Only active routes confirmed for parcel service are selectable. If no route applies, leave it blank and assign one later.</small></div>
     </div>
     <button class="btn btn-dark mt-4">Register parcel</button>
   </form>
@@ -37,6 +38,7 @@
 {{ town_county_map|json_script:"town-county-map" }}
 {{ branch_town_map|json_script:"branch-town-map" }}
 {{ route_map|json_script:"route-map" }}
+{{ service_point_map|json_script:"service-point-map" }}
 <script>
 (function () {
   const county = document.getElementById("id_destination_county");
@@ -44,12 +46,15 @@
   const mappingNode = document.getElementById("town-county-map");
   const branchNode = document.getElementById("branch-town-map");
   const routeNode = document.getElementById("route-map");
+  const servicePointNode = document.getElementById("service-point-map");
   const origin = document.getElementById("id_origin");
   const route = document.getElementById("id_operator_route");
-  if (!county || !town || !mappingNode || !branchNode || !routeNode || !origin || !route) return;
+  const servicePoint = document.getElementById("id_operator_service_point");
+  if (!county || !town || !mappingNode || !branchNode || !routeNode || !servicePointNode || !origin || !route || !servicePoint) return;
   const townCounty = JSON.parse(mappingNode.textContent);
   const branchTown = JSON.parse(branchNode.textContent);
   const routeMap = JSON.parse(routeNode.textContent);
+  const servicePointMap = JSON.parse(servicePointNode.textContent);
   function filterTowns(clearInvalid) {
     const selectedCounty = county.value;
     Array.from(town.options).forEach(function (option) {
@@ -71,11 +76,21 @@
       if (!visible && option.selected && clearInvalid) route.value = "";
     });
   }
-  county.addEventListener("change", function () { filterTowns(true); filterRoutes(true); });
-  town.addEventListener("change", function () { filterRoutes(true); });
+  function filterServicePoints(clearInvalid) {
+    const destinationTown = town.value;
+    Array.from(servicePoint.options).forEach(function (option) {
+      if (!option.value) return;
+      const visible = !!destinationTown && servicePointMap[option.value] === destinationTown;
+      option.hidden = !visible;
+      if (!visible && option.selected && clearInvalid) servicePoint.value = "";
+    });
+  }
+  county.addEventListener("change", function () { filterTowns(true); filterRoutes(true); filterServicePoints(true); });
+  town.addEventListener("change", function () { filterRoutes(true); filterServicePoints(true); });
   origin.addEventListener("change", function () { filterRoutes(true); });
   filterTowns(false);
   filterRoutes(false);
+  filterServicePoints(false);
 })();
 </script>
 {% endblock %}
