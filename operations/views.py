@@ -98,7 +98,7 @@ def dashboard(request):
     }
     if request.user.has_perm("operations.view_payment"):
         counts["revenue"] = Payment.objects.aggregate(total=Sum("amount"))["total"] or 0
-    recent = Parcel.objects.select_related("sender", "recipient", "origin", "destination", "destination_town__county", "operator_route__operator").order_by("-created_at")[:8]
+    recent = Parcel.objects.select_related("sender", "recipient", "origin", "destination", "destination_town__county", "operator_route__operator", "operator_service_point__operator", "operator_service_point__town").order_by("-created_at")[:8]
     return render(request, "operations/dashboard.html", {
         "counts": counts,
         "recent_parcels": recent,
