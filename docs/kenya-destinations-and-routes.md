@@ -19,7 +19,7 @@ No external courier, passenger coach company or freight operator is part of the 
 
 The seed command retains the previously selected origin/destination pairs and associates them with MAKOS SACCO. Duplicate origin/destination pairs are naturally represented once because each operator route is unique by operator, origin and destination.
 
-The route list is an administrator-provided configuration. Its presence in the database is not independent evidence that a particular journey is currently operating. MAKOS staff should confirm each route before dispatching parcels.
+The route list is an administrator-provided configuration. The seed command creates every route as `UNVERIFIED`, inactive, and not parcel-confirmed. Its presence in the database is not evidence that a particular journey is currently operating. An authorized MAKOS administrator must verify a route and explicitly confirm parcel service before activating it or assigning parcels.
 
 ## Kenya destinations
 
