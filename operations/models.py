@@ -252,8 +252,10 @@ class Parcel(models.Model):
             errors["delivery_fee"] = "Delivery fee cannot be negative."
         if self.operator_route_id:
             route = self.operator_route
-            if not route.is_active or not route.parcel_service_confirmed:
-                errors["operator_route"] = "Only active routes confirmed for parcel service can be assigned."
+            if (not route.is_active or not route.parcel_service_confirmed
+                    or not route.operator.is_active or not route.operator.parcel_service_confirmed
+                    or route.verification_status == OperatorRoute.Verification.UNVERIFIED):
+                errors["operator_route"] = "Only active, verified routes confirmed for parcel service can be assigned."
             if self.destination_town_id and route.destination_id != self.destination_town_id:
                 errors["operator_route"] = "The selected route does not serve this destination town."
             if self.origin_id and self.origin.town_id and route.origin_id != self.origin.town_id:
