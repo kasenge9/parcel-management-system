@@ -211,7 +211,16 @@ class Parcel(models.Model):
         Branch, on_delete=models.PROTECT, related_name="origin_parcels"
     )
     destination = models.ForeignKey(
-        Branch, on_delete=models.PROTECT, related_name="destination_parcels"
+        Branch, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="destination_parcels"
+    )
+    destination_town = models.ForeignKey(
+        Town, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="destination_parcels"
+    )
+    operator_route = models.ForeignKey(
+        OperatorRoute, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="parcels"
     )
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(
@@ -241,8 +250,20 @@ class Parcel(models.Model):
             errors["weight_kg"] = "Parcel weight must be greater than zero."
         if self.delivery_fee is not None and self.delivery_fee < 0:
             errors["delivery_fee"] = "Delivery fee cannot be negative."
+        if self.operator_route_id:
+            route = self.operator_route
+            if not route.is_active or not route.parcel_service_confirmed:
+                errors["operator_route"] = "Only active routes confirmed for parcel service can be assigned."
+            if self.destination_town_id and route.destination_id != self.destination_town_id:
+                errors["operator_route"] = "The selected route does not serve this destination town."
+            if self.origin_id and self.origin.town_id and route.origin_id != self.origin.town_id:
+                errors["operator_route"] = "The selected route does not match the parcel origin branch town."
         if errors:
             raise ValidationError(errors)
+
+    @property
+    def route_assignment_status(self):
+        return "assigned" if self.operator_route_id else "awaiting_route_assignment"
 
     def save(self, *args, **kwargs):
         if not self.tracking_number:
