@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase
@@ -457,6 +458,51 @@ class KenyaDestinationDirectoryTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Destinations across Kenya")
 
+    def test_public_directory_hides_external_operator_routes_and_service_points(self):
+        county = County.objects.create(name="Public Filter County", code=96)
+        origin = Town.objects.create(county=county, name="Public Origin")
+        destination = Town.objects.create(county=county, name="Public Destination")
+        external = TransportOperator.objects.create(
+            name="External Courier Ltd",
+            category=TransportOperator.Category.COURIER,
+            parcel_service_confirmed=True,
+            is_active=True,
+        )
+        OperatorRoute.objects.create(
+            operator=external,
+            origin=origin,
+            destination=destination,
+            service_type=TransportOperator.Category.COURIER,
+            verification_status=OperatorRoute.Verification.CONFIRMED,
+            parcel_service_confirmed=True,
+            is_active=True,
+        )
+        OperatorServicePoint.objects.create(
+            operator=external,
+            town=destination,
+            is_verified=True,
+            accepts_parcels=True,
+            is_active=True,
+        )
+
+        response = self.client.get(reverse("destinations"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "External Courier Ltd")
+
+    def test_route_seed_starts_unverified_inactive_and_not_parcel_confirmed(self):
+        call_command("seed_kenya_destinations", verbosity=0)
+        call_command("seed_published_operator_routes", verbosity=0)
+
+        routes = OperatorRoute.objects.filter(operator__name="MAKOS SACCO")
+        self.assertEqual(routes.count(), 18)
+        self.assertFalse(routes.exclude(
+            verification_status=OperatorRoute.Verification.UNVERIFIED,
+            is_active=False,
+            parcel_service_confirmed=False,
+        ).exists())
+        self.assertFalse(routes.exclude(last_verified__isnull=True).exists())
+
     def test_route_cannot_be_activated_without_verification(self):
         county = County.objects.create(name="Test County", code=99)
         origin = Town.objects.create(county=county, name="Origin")
@@ -517,6 +563,60 @@ class ParcelRegistrationDestinationTests(TestCase):
         }
         payload.update(extra)
         return payload
+
+    def test_form_excludes_external_operator_routes_and_service_points(self):
+        external = TransportOperator.objects.create(
+            name="External Parcel Company",
+            category=TransportOperator.Category.COURIER,
+            parcel_service_confirmed=True,
+            is_active=True,
+        )
+        route = OperatorRoute.objects.create(
+            operator=external,
+            origin=self.origin_town,
+            destination=self.town,
+            service_type=TransportOperator.Category.COURIER,
+            verification_status=OperatorRoute.Verification.CONFIRMED,
+            parcel_service_confirmed=True,
+            is_active=True,
+        )
+        service_point = OperatorServicePoint.objects.create(
+            operator=external,
+            town=self.town,
+            is_verified=True,
+            accepts_parcels=True,
+            is_active=True,
+        )
+
+        from .forms import ParcelForm
+        form = ParcelForm()
+
+        self.assertFalse(form.fields["operator_route"].queryset.filter(pk=route.pk).exists())
+        self.assertFalse(
+            form.fields["operator_service_point"].queryset.filter(pk=service_point.pk).exists()
+        )
+
+    def test_unverified_inactive_makos_route_is_not_selectable(self):
+        makos = TransportOperator.objects.create(
+            name="MAKOS SACCO",
+            category=TransportOperator.Category.COURIER,
+            parcel_service_confirmed=True,
+            is_active=True,
+        )
+        route = OperatorRoute.objects.create(
+            operator=makos,
+            origin=self.origin_town,
+            destination=self.town,
+            service_type=TransportOperator.Category.COURIER,
+            verification_status=OperatorRoute.Verification.UNVERIFIED,
+            parcel_service_confirmed=False,
+            is_active=False,
+        )
+
+        from .forms import ParcelForm
+        form = ParcelForm()
+
+        self.assertFalse(form.fields["operator_route"].queryset.filter(pk=route.pk).exists())
 
     def test_parcel_can_be_registered_without_route_assignment(self):
         self.client.force_login(self.clerk)
