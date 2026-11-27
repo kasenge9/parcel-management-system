@@ -6,9 +6,9 @@ from operations.models import County, Town
 
 # County headquarters plus selected established towns/localities for destination search.
 COUNTY_TOWNS = [
-    (1, "Mombasa", ["Mombasa", "Likoni", "Bamburi", "Kisauni", "Mtwapa"]),
+    (1, "Mombasa", ["Mombasa", "Likoni", "Bamburi", "Kisauni"]),
     (2, "Kwale", ["Kwale", "Ukunda", "Diani", "Msambweni", "Lunga Lunga"]),
-    (3, "Kilifi", ["Kilifi", "Malindi", "Watamu", "Mariakani", "Kilifi South"]),
+    (3, "Kilifi", ["Kilifi", "Malindi", "Watamu", "Mariakani", "Mtwapa", "Kilifi South"]),
     (4, "Tana River", ["Hola", "Garsen", "Bura", "Madogo"]),
     (5, "Lamu", ["Lamu", "Mpeketoni", "Witu", "Faza"]),
     (6, "Taita-Taveta", ["Mwatate", "Voi", "Wundanyi", "Taveta"]),
