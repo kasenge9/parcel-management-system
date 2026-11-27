@@ -1,5 +1,3 @@
-from datetime import date
-
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
@@ -104,15 +102,15 @@ class Command(BaseCommand):
                 destination=destination,
                 defaults={
                     "service_type": TransportOperator.Category.PASSENGER,
-                    "verification_status": OperatorRoute.Verification.CONFIRMED,
+                    "verification_status": OperatorRoute.Verification.UNVERIFIED,
                     "source_url": "",
-                    "last_verified": date.today(),
-                    "parcel_service_confirmed": True,
-                    "is_active": True,
+                    "last_verified": None,
+                    "parcel_service_confirmed": False,
+                    "is_active": False,
                     "notes": (
-                        "Configured as a MAKOS SACCO internal route using the "
-                        "administrator-requested route list. Confirm actual service "
-                        "availability before dispatch."
+                        "Configured as a proposed MAKOS SACCO route using the "
+                        "administrator-requested route list. It remains inactive "
+                        "until MAKOS verifies the route and confirms parcel service."
                     ),
                 },
             )
