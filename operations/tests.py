@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -277,8 +278,6 @@ class OperationsModelValidationTests(TestCase):
                     self.assertFalse(model._meta.get_field(field_name).null)
 
     def test_customer_cannot_be_deleted_while_parcels_reference_them(self):
-        from django.db.models import ProtectedError
-
         with self.assertRaises(ProtectedError):
             self.sender.delete()
 
@@ -319,8 +318,6 @@ class ForeignKeyDeletionPolicyTests(TestCase):
         )
 
     def test_payment_protects_parcel_from_deletion(self):
-        from django.db.models import ProtectedError
-
         Payment.objects.create(
             parcel=self.parcel,
             amount=Decimal("50.00"),
@@ -394,5 +391,6 @@ class ForeignKeyDeletionPolicyTests(TestCase):
             self.parcel.delete()
 
         dispatch.delete()
+        parcel_id = self.parcel.pk
         self.parcel.delete()
-        self.assertFalse(Parcel.objects.filter(pk=self.parcel.pk).exists())
+        self.assertFalse(Parcel.objects.filter(pk=parcel_id).exists())
