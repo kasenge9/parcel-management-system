@@ -327,8 +327,6 @@ class ForeignKeyDeletionPolicyTests(TestCase):
             self.parcel.delete()
 
     def test_branch_is_protected_while_referenced_by_parcel(self):
-        from django.db.models import ProtectedError
-
         with self.assertRaises(ProtectedError):
             self.origin.delete()
 
@@ -375,8 +373,6 @@ class ForeignKeyDeletionPolicyTests(TestCase):
         )
 
     def test_dispatch_item_protects_parcel_until_dispatch_is_removed(self):
-        from django.db.models import ProtectedError
-
         dispatch = Dispatch.objects.create(
             vehicle=Vehicle.objects.create(registration_number="KDC 789C"),
             driver=Driver.objects.create(
