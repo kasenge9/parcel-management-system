@@ -1,0 +1,425 @@
+{
+  "schema_version": 1,
+  "updated_on": "2026-11-27",
+  "important_notice": "This is an operator research seed, not a live route timetable. CA licensing does not prove a specific route, branch, or parcel service. Never promise availability from this file.",
+  "sources": [
+    {
+      "id": "ca-licensed-operators-2026-02",
+      "title": "Communications Authority of Kenya — Postal and Courier Operators as at 15 February 2026",
+      "url": "https://ca.go.ke/sites/default/files/2026-03/POSTAL%20AND%20COURIER%20OPERATORS%20AS%20AT%2015TH%20FEB%202026.pdf",
+      "checked_on": "2026-11-27",
+      "use": "Operator licensing context only; not route or branch proof."
+    },
+    {
+      "id": "ca-sector-baseline-2022",
+      "title": "Communications Authority — Baseline Survey for Postal and Courier Services in Kenya (2022)",
+      "url": "https://www.ca.go.ke/sites/default/files/2023-06/Baseline%20urvey%20for%20Postal%20and%20Courier%20Services%20in%20Kenya%20Report%202022.pdf",
+      "checked_on": "2026-11-27",
+      "use": "Historical station coverage only; reconfirm every location before operational use."
+    },
+    {
+      "id": "fargo-branches",
+      "title": "Fargo Courier — Our Branches",
+      "url": "https://www.fargocourier.co.ke/our-branches/",
+      "checked_on": "2026-11-27",
+      "use": "Published current branch/outlet directory; confirm individual outlet and parcel acceptance before dispatch."
+    },
+    {
+      "id": "tahmeed-routes",
+      "title": "Tahmeed Coach — Official website",
+      "url": "https://tahmeedcoach.co.ke/",
+      "checked_on": "2026-11-27",
+      "use": "Published passenger route information; parcel/cargo service is not confirmed by this source."
+    },
+    {
+      "id": "modern-coast",
+      "title": "Modern Coast — Official website",
+      "url": "https://moderncoast.co.ke/",
+      "checked_on": "2026-11-27",
+      "use": "Published passenger route information; parcel/cargo service is not confirmed by this source."
+    },
+    {
+      "id": "mash-poa",
+      "title": "Mash Poa — Official website",
+      "url": "https://www.mashpoabus.com/",
+      "checked_on": "2026-11-27",
+      "use": "Operator and route information; specific parcel/cargo acceptance requires confirmation."
+    }
+  ],
+  "operators": [
+    {
+      "name": "Fargo Courier",
+      "category": "courier",
+      "source_ids": [
+        "ca-licensed-operators-2026-02",
+        "fargo-branches"
+      ],
+      "parcel_service_confirmed": true,
+      "verification_status": "published_branch_directory",
+      "notes": "Use only outlets currently shown by Fargo; confirm branch opening and parcel acceptance directly."
+    },
+    {
+      "name": "G4S",
+      "category": "courier",
+      "source_ids": [
+        "ca-licensed-operators-2026-02",
+        "ca-sector-baseline-2022"
+      ],
+      "parcel_service_confirmed": true,
+      "verification_status": "historical_coverage_only",
+      "notes": "CA 2022 baseline includes station coverage; do not treat those stations as current without reconfirmation."
+    },
+    {
+      "name": "Tahmeed Coach",
+      "category": "passenger_transport",
+      "source_ids": [
+        "tahmeed-routes"
+      ],
+      "parcel_service_confirmed": false,
+      "verification_status": "parcel_service_unverified",
+      "notes": "Passenger routes are published; do not offer parcel dispatch until the operator confirms parcel/cargo acceptance."
+    },
+    {
+      "name": "Modern Coast",
+      "category": "passenger_transport",
+      "source_ids": [
+        "modern-coast"
+      ],
+      "parcel_service_confirmed": false,
+      "verification_status": "parcel_service_unverified",
+      "notes": "Passenger routes are published; do not offer parcel dispatch until the operator confirms parcel/cargo acceptance."
+    },
+    {
+      "name": "Mash Poa / Mash East Africa",
+      "category": "passenger_transport",
+      "source_ids": [
+        "ca-licensed-operators-2026-02",
+        "mash-poa"
+      ],
+      "parcel_service_confirmed": false,
+      "verification_status": "parcel_service_unverified",
+      "notes": "CA listing and website do not by themselves establish parcel acceptance on each route."
+    }
+  ],
+  "published_routes": [
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Mumias",
+      "destination": "Mombasa",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Mombasa",
+      "destination": "Nairobi",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Nairobi",
+      "destination": "Kisumu",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Nakuru",
+      "destination": "Eldoret",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Nairobi",
+      "destination": "Malindi",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Nairobi",
+      "destination": "Kilifi",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Nairobi",
+      "destination": "Mtwapa",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Bomet",
+      "destination": "Nairobi",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Bungoma",
+      "destination": "Mombasa",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Busia",
+      "destination": "Mombasa",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Busia",
+      "destination": "Nairobi",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Eldoret",
+      "destination": "Mombasa",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Tahmeed Coach",
+      "origin": "Kakamega",
+      "destination": "Mombasa",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "tahmeed-routes"
+      ]
+    },
+    {
+      "operator": "Modern Coast",
+      "origin": "Nairobi",
+      "destination": "Mombasa",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "modern-coast"
+      ]
+    },
+    {
+      "operator": "Modern Coast",
+      "origin": "Nairobi",
+      "destination": "Malindi",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "modern-coast"
+      ]
+    },
+    {
+      "operator": "Modern Coast",
+      "origin": "Nairobi",
+      "destination": "Diani",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "modern-coast"
+      ]
+    },
+    {
+      "operator": "Modern Coast",
+      "origin": "Mombasa",
+      "destination": "Lamu",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "modern-coast"
+      ]
+    },
+    {
+      "operator": "Modern Coast",
+      "origin": "Nairobi",
+      "destination": "Kisumu",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "modern-coast"
+      ]
+    },
+    {
+      "operator": "Modern Coast",
+      "origin": "Nairobi",
+      "destination": "Nakuru",
+      "stops": [],
+      "service_type": "passenger",
+      "parcel_service_confirmed": false,
+      "verification_status": "published_passenger_route_only",
+      "source_ids": [
+        "modern-coast"
+      ]
+    }
+  ],
+  "historical_courier_stations": {
+    "dataset_source_id": "ca-sector-baseline-2022",
+    "status": "historical_do_not_assume_current",
+    "stations_by_operator": {
+      "Fargo Courier": [
+        "Lodwar",
+        "Marsabit",
+        "Maralal",
+        "Isiolo",
+        "Maua",
+        "Meru",
+        "Kapenguria",
+        "Kitale",
+        "Malaba",
+        "Bungoma",
+        "Busia",
+        "Webuye",
+        "Eldoret",
+        "Kabarnet",
+        "Malava",
+        "Kapsabet",
+        "Nandi Hills",
+        "Mumias",
+        "Kakamega",
+        "Luanda",
+        "Kisumu",
+        "Bondo",
+        "Siaya",
+        "Kericho",
+        "Molo",
+        "Ol-Kalou",
+        "Nakuru",
+        "Nyahururu",
+        "Nyeri",
+        "Nanyuki",
+        "Chuka",
+        "Embu",
+        "Karatina",
+        "Thika",
+        "Murang'a",
+        "Kiambu",
+        "Matuu",
+        "Kitui",
+        "Machakos",
+        "Wote",
+        "Mutomo",
+        "Kajiado",
+        "Emali",
+        "Kibwezi",
+        "Mtito Andei",
+        "Oloitoktok",
+        "Taveta",
+        "Garissa",
+        "Wajir",
+        "Mandera",
+        "Malindi",
+        "Watamu",
+        "Kilifi",
+        "Mariakani",
+        "Mombasa",
+        "Diani",
+        "Lamu",
+        "Mpeketoni"
+      ],
+      "G4S": [
+        "Kitale",
+        "Bungoma",
+        "Kabarnet",
+        "Malava",
+        "Kapsabet",
+        "Nakuru",
+        "Nyahururu",
+        "Nanyuki",
+        "Chuka",
+        "Embu",
+        "Karatina",
+        "Thika",
+        "Murang'a",
+        "Kitui",
+        "Malindi",
+        "Watamu",
+        "Kilifi",
+        "Diani"
+      ],
+      "Roy Parcels": [
+        "Kisumu",
+        "Nanyuki",
+        "Mombasa"
+      ]
+    }
+  }
+}
