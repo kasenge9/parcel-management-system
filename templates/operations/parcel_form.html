@@ -35,13 +35,21 @@
   </form>
 </div></main>
 {{ town_county_map|json_script:"town-county-map" }}
+{{ branch_town_map|json_script:"branch-town-map" }}
+{{ route_map|json_script:"route-map" }}
 <script>
 (function () {
   const county = document.getElementById("id_destination_county");
   const town = document.getElementById("id_destination_town");
   const mappingNode = document.getElementById("town-county-map");
-  if (!county || !town || !mappingNode) return;
+  const branchNode = document.getElementById("branch-town-map");
+  const routeNode = document.getElementById("route-map");
+  const origin = document.getElementById("id_origin");
+  const route = document.getElementById("id_operator_route");
+  if (!county || !town || !mappingNode || !branchNode || !routeNode || !origin || !route) return;
   const townCounty = JSON.parse(mappingNode.textContent);
+  const branchTown = JSON.parse(branchNode.textContent);
+  const routeMap = JSON.parse(routeNode.textContent);
   function filterTowns(clearInvalid) {
     const selectedCounty = county.value;
     Array.from(town.options).forEach(function (option) {
@@ -51,8 +59,23 @@
       if (!visible && option.selected && clearInvalid) town.value = "";
     });
   }
-  county.addEventListener("change", function () { filterTowns(true); });
+  function filterRoutes(clearInvalid) {
+    const originTown = branchTown[origin.value];
+    const destinationTown = town.value;
+    Array.from(route.options).forEach(function (option) {
+      if (!option.value) return;
+      const details = routeMap[option.value];
+      const visible = !!details && !!originTown && !!destinationTown
+        && details.origin === originTown && details.destination === destinationTown;
+      option.hidden = !visible;
+      if (!visible && option.selected && clearInvalid) route.value = "";
+    });
+  }
+  county.addEventListener("change", function () { filterTowns(true); filterRoutes(true); });
+  town.addEventListener("change", function () { filterRoutes(true); });
+  origin.addEventListener("change", function () { filterRoutes(true); });
   filterTowns(false);
+  filterRoutes(false);
 })();
 </script>
 {% endblock %}
