@@ -153,11 +153,23 @@ def parcel_create(request):
         }
         for route in eligible_routes
     }
+    service_points = OperatorServicePoint.objects.filter(
+        is_active=True,
+        is_verified=True,
+        accepts_parcels=True,
+        operator__is_active=True,
+        operator__parcel_service_confirmed=True,
+    ).values("id", "town_id")
+    service_point_map = {
+        str(point["id"]): str(point["town_id"])
+        for point in service_points
+    }
     return render(request, "operations/parcel_form.html", {
         "form": form,
         "town_county_map": town_county_map,
         "branch_town_map": branch_town_map,
         "route_map": route_map,
+        "service_point_map": service_point_map,
     })
 
 
