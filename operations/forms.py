@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Branch, County, Customer, OperatorRoute, Parcel, Town
+from .models import Branch, County, Customer, OperatorRoute, OperatorServicePoint, Parcel, Town
 
 
 class ParcelForm(forms.ModelForm):
@@ -13,7 +13,12 @@ class ParcelForm(forms.ModelForm):
     operator_route = forms.ModelChoiceField(
         queryset=OperatorRoute.objects.none(), required=False,
         label="Delivery operator / route",
-        empty_label="Leave unassigned — assign route later",
+        empty_label="Leave route unassigned — assign later",
+    )
+    operator_service_point = forms.ModelChoiceField(
+        queryset=OperatorServicePoint.objects.none(), required=False,
+        label="Receiving courier service point",
+        empty_label="No receiving service point selected",
     )
 
     class Meta:
@@ -43,18 +48,30 @@ class ParcelForm(forms.ModelForm):
                 OperatorRoute.Verification.CONFIRMED,
             ],
         ).select_related("operator", "origin", "destination")
+        self.fields["operator_service_point"].queryset = OperatorServicePoint.objects.filter(
+            is_active=True,
+            is_verified=True,
+            accepts_parcels=True,
+            operator__is_active=True,
+            operator__parcel_service_confirmed=True,
+        ).select_related("operator", "town")
 
     def clean(self):
         cleaned = super().clean()
         route = cleaned.get("operator_route")
         origin = cleaned.get("origin")
         destination_town = cleaned.get("destination_town")
+        service_point = cleaned.get("operator_service_point")
         if route and destination_town and route.destination_id != destination_town.id:
             self.add_error("operator_route", "This operator route does not serve the selected destination town.")
         if route and origin and not origin.town_id:
             self.add_error("operator_route", "Set the origin branch town before selecting an operator route.")
         elif route and origin and route.origin_id != origin.town_id:
             self.add_error("operator_route", "This operator route does not start at the selected origin branch town.")
+        if service_point and destination_town and service_point.town_id != destination_town.id:
+            self.add_error("operator_service_point", "This service point is not in the selected destination town.")
+        if route and service_point and route.operator_id != service_point.operator_id:
+            self.add_error("operator_service_point", "The route and service point must belong to the same operator.")
         return cleaned
 
     def clean_weight_kg(self):
@@ -77,6 +94,7 @@ class ParcelForm(forms.ModelForm):
         parcel.destination = None
         parcel.destination_town = self.cleaned_data["destination_town"]
         parcel.operator_route = self.cleaned_data.get("operator_route")
+        parcel.operator_service_point = self.cleaned_data.get("operator_service_point")
         if commit:
             parcel.save()
         return parcel
