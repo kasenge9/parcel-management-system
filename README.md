@@ -87,3 +87,9 @@ python manage.py seed_published_operator_routes
 The destination seed is idempotent and includes each county headquarters plus selected towns. The operator route seed records published Tahmeed and Modern Coast passenger routes as passenger services only. It deliberately leaves parcel acceptance disabled. An administrator must verify a carrier's parcel/cargo service, service point, and specific route before enabling parcel operations.
 
 The Django admin now manages counties, towns, transport operators, service points, routes, and ordered intermediate stops. Routes cannot be activated while unverified, and service points cannot be activated without verification. Keep source URLs and verification dates current. Historical Communications Authority station data is retained as research context and is not automatically imported as active outlets.
+
+## Parcel registration destinations and route assignment
+
+Parcel registration uses the county/town directory. Staff select an origin branch, destination county, and destination town. A delivery operator route is optional and is offered only when it is active, verified/published, and explicitly confirmed for parcel service. The form validates that the selected route serves the chosen destination and origin town.
+
+A parcel can still be registered when no eligible route exists. It is saved with the selected destination town and no operator route, and its route assignment status is `awaiting_route_assignment`. An authorized administrator can assign a suitable route later after verifying the carrier and service. The legacy destination-branch field remains nullable for compatibility with existing parcel records.
