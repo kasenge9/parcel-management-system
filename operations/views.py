@@ -1,16 +1,27 @@
-from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import Group
 from django.contrib.auth.decorators import login_required, permission_required
-from django.db import transaction
-from django.db.models import Sum
-from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.views import LoginView
 from django import forms
+from django.contrib import messages
+from django.db import transaction
+from django.db.models import Count, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from .decorators import role_required
 from .forms import ParcelForm
-from .models import Parcel, Payment, TrackingEvent
+from .models import Branch, Parcel, Payment, TrackingEvent
 from .roles import role_names
+
+
+class StaffLoginView(LoginView):
+    """Send customers to public pages and authorized operations users to staff."""
+    def get_success_url(self):
+        if self.request.user.has_perm("operations.view_parcel"):
+            return reverse("dashboard")
+        return reverse("home")
 
 
 class StaffUserCreationForm(UserCreationForm):
@@ -26,7 +37,7 @@ class StaffUserCreationForm(UserCreationForm):
         user.is_staff = role != "Customer"
         if commit:
             user.save()
-            user.groups.set([__import__("django.contrib.auth.models", fromlist=["Group"]).Group.objects.get(name=role)])
+            user.groups.set([Group.objects.get(name=role)])
         return user
 
 
@@ -40,6 +51,15 @@ def about(request):
 
 def services(request):
     return render(request, "operations/services.html")
+
+
+def branches(request):
+    locations = Branch.objects.filter(is_active=True).order_by("name")
+    return render(request, "operations/branches.html", {"branches": locations})
+
+
+def contact(request):
+    return render(request, "operations/contact.html")
 
 
 def track_parcel(request):
@@ -119,33 +139,48 @@ def parcel_detail(request, pk):
 
 
 @login_required
-@permission_required("operations.change_parcel", raise_exception=True)
+@role_required("System Administrator", "Branch Manager", "Dispatcher")
 def update_status(request, pk):
+    if request.method != "POST":
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("Parcel status changes must use POST.")
     parcel = get_object_or_404(Parcel, pk=pk)
-    if request.method == "POST":
-        status = request.POST.get("status", "")
-        allowed = {value for value, _ in Parcel.Status.choices}
-        if status not in allowed:
-            messages.error(request, "Choose a valid parcel status.")
-        elif status == parcel.status:
-            messages.info(request, "Parcel already has that status.")
-        else:
-            with transaction.atomic():
-                parcel.status = status
-                parcel.save(update_fields=["status", "updated_at"])
-                location = parcel.destination.name if status in {
-                    Parcel.Status.ARRIVED,
-                    Parcel.Status.READY_COLLECTION,
-                    Parcel.Status.COLLECTED,
-                } else ""
-                TrackingEvent.objects.create(
-                    parcel=parcel,
-                    status=status,
-                    location=location,
-                    created_by=request.user,
-                )
-            messages.success(request, "Status and tracking history updated.")
+    status = request.POST.get("status", "")
+    allowed = {value for value, _ in Parcel.Status.choices}
+    if status not in allowed:
+        messages.error(request, "Choose a valid parcel status.")
+    elif status == parcel.status:
+        messages.info(request, "Parcel already has that status.")
+    else:
+        with transaction.atomic():
+            parcel.status = status
+            parcel.save(update_fields=["status", "updated_at"])
+            location = parcel.destination.name if status in {
+                Parcel.Status.ARRIVED,
+                Parcel.Status.READY_COLLECTION,
+                Parcel.Status.COLLECTED,
+            } else ""
+            TrackingEvent.objects.create(
+                parcel=parcel,
+                status=status,
+                location=location,
+                created_by=request.user,
+            )
+        messages.success(request, "Status and tracking history updated.")
     return redirect("parcel_detail", pk=parcel.pk)
+
+
+@login_required
+@role_required("System Administrator", "Branch Manager")
+def management_dashboard(request):
+    context = {
+        "branch_count": Branch.objects.filter(is_active=True).count(),
+        "branches": Branch.objects.annotate(parcel_count=Count("origin_parcels")).order_by("name"),
+        "can_view_finance": request.user.has_perm("operations.view_payment"),
+    }
+    if context["can_view_finance"]:
+        context["recorded_revenue"] = Payment.objects.aggregate(total=Sum("amount"))["total"] or 0
+    return render(request, "operations/management_dashboard.html", context)
 
 
 @login_required

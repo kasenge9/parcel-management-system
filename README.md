@@ -1,15 +1,15 @@
 # MAKOS SACCO Parcel Management System
 
-A Django-based academic project prototype for parcel registration, tracking and branch operations. The requirements are proposed and must be validated with MAKOS SACCO stakeholders before production use.
+A Django-based academic project prototype for parcel registration, tracking and branch operations. Requirements are proposed and must be validated with MAKOS SACCO stakeholders before production use.
 
 ## Website areas
 
-- **Public website:** Home, About, Services and parcel tracking.
-- **Staff portal:** Sign in, role-protected parcel dashboard, registration, records and status history.
+- **Public website:** Home, About, Services, Branches, Contact and parcel tracking.
+- **Staff portal:** Sign in, role-protected dashboard, parcel registration, records and status history.
+- **Management portal:** Read-only branch overview for System Administrators and Branch Managers; payment totals are shown only to users with payment-view permission.
 - **Access control:** Standard Django Groups provide the System Administrator, Branch Manager, Parcel Clerk, Dispatcher, Driver, Finance Officer and Customer roles. Permissions are synchronized after migrations; staff account management is restricted to System Administrators.
-- **Management foundation:** Django admin and existing operational data models. Advanced management workflows remain planned enhancements.
 
-The public About and Services pages describe the proposed system. They do not claim that planned integrations or workflows are already operational.
+Public pages describe the proposed system and do not claim that planned integrations or operational workflows are already available. The Contact page intentionally does not invent contact details; verified official channels should be added before launch.
 
 ## Quick start (Windows PowerShell)
 
@@ -32,35 +32,22 @@ python manage.py test
 python manage.py runserver
 ```
 
-Visit `http://127.0.0.1:8000/`. Public pages include `/about/`, `/services/` and `/track/`; staff pages require a role granting the relevant permission. The first superuser can access `/staff/users/` to create accounts and assign roles. To use SQLite for a quick local evaluation only, set `DB_ENGINE=django.db.backends.sqlite3` in `.env`.
+Visit `http://127.0.0.1:8000/`. Public pages include `/about/`, `/services/`, `/branches/`, `/contact/` and `/track/`. Staff must be assigned a role granting the requested permission. The first superuser can access `/staff/users/` to create accounts and assign roles, and `/management/` for the management overview. To use SQLite for a quick local evaluation only, set `DB_ENGINE=django.db.backends.sqlite3` in `.env`.
 
 ## Development branch
 
-Website foundation and RBAC work are being developed on `feature/makos-website-foundation`. The `main` branch is kept unchanged until the work is reviewed and merged.
-
-## Current prototype functionality
-
-- Responsive MAKOS-branded layout with shared navigation and footer.
-- Public home, About, Services and parcel tracking pages.
-- Role-based authorization using Django permissions and groups.
-- Administrator-only user creation and role assignment.
-- Authenticated, permission-protected staff dashboard and parcel workflows.
-- Register parcels with sender, recipient, route, weight, description and fee.
-- Unique tracking codes and tracking events for status changes.
-- Branch, customer, payment, vehicle, driver and dispatch data models available through Django admin.
-- Revenue summary shown only to users with payment-view permission.
-- Automated tests for public routes and RBAC access rules.
+Website foundation, role-based access, and staff/management portal work are on `feature/makos-website-foundation`. The `main` branch remains unchanged until review and merge.
 
 ## Role permission summary
 
 - **System Administrator:** All operations-app permissions; Django superusers retain Django's built-in permission bypass.
-- **Branch Manager:** Broad branch operations, including parcel and dispatch management.
-- **Parcel Clerk:** Parcel registration and editing, customer records, tracking events and payment visibility.
-- **Dispatcher:** Dispatch and transport records, parcel updates and tracking events.
+- **Branch Manager:** Broad branch operations, parcel and dispatch management, plus the management overview.
+- **Parcel Clerk:** Parcel registration/editing, customer records and tracking events; cannot change parcel status or administer users.
+- **Dispatcher:** Dispatch and transport records, parcel status changes and tracking events.
 - **Driver:** Read access to assigned-operation data and tracking event creation.
 - **Finance Officer:** Payment recording and viewing, with read access to parcel/customer/branch records.
 - **Customer:** No staff-operation permissions. Public tracking remains available; customer account workflows are not implemented.
 
-Roles are Django groups, created/synchronized during `migrate` after app permissions exist. Existing accounts must be assigned to an appropriate group by a superuser before they can access staff pages. Role policy is a starting point and needs stakeholder/security review before production deployment.
+Roles are Django groups, created/synchronized during `migrate` after app permissions exist. Existing accounts must be assigned to an appropriate group by a superuser before they can access staff pages. Role policy is an initial implementation and requires stakeholder/security review before production deployment.
 
-This is an academic MVP, not production-ready. Requirements must be validated with MAKOS SACCO stakeholders before real use. Configure a strong `SECRET_KEY`, `DEBUG=False`, appropriate `ALLOWED_HOSTS`, secure HTTPS cookies and a production-grade database.
+This is an academic MVP, not production-ready. Validate requirements with MAKOS SACCO stakeholders. Configure a strong `SECRET_KEY`, `DEBUG=False`, appropriate `ALLOWED_HOSTS`, secure HTTPS cookies and a production-grade database.

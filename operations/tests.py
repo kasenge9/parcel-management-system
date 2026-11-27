@@ -22,6 +22,16 @@ class PublicWebsitePagesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Tools for every stage")
 
+    def test_branches_page_loads(self):
+        response = self.client.get(reverse("branches"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Branches")
+
+    def test_contact_page_loads(self):
+        response = self.client.get(reverse("contact"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Contact MAKOS SACCO")
+
     def test_tracking_page_loads(self):
         response = self.client.get(reverse("track"))
         self.assertEqual(response.status_code, 200)
@@ -34,6 +44,10 @@ class RoleBasedAccessTests(TestCase):
         sync_role_groups(sender=None)
         cls.clerk = get_user_model().objects.create_user(username="clerk", password="StrongPass!234")
         cls.clerk.groups.add(Group.objects.get(name="Parcel Clerk"))
+        cls.dispatcher = get_user_model().objects.create_user(username="dispatcher", password="StrongPass!234")
+        cls.dispatcher.groups.add(Group.objects.get(name="Dispatcher"))
+        cls.manager = get_user_model().objects.create_user(username="manager", password="StrongPass!234")
+        cls.manager.groups.add(Group.objects.get(name="Branch Manager"))
         cls.customer = get_user_model().objects.create_user(username="customer", password="StrongPass!234")
         cls.customer.groups.add(Group.objects.get(name="Customer"))
         cls.admin = get_user_model().objects.create_superuser(username="root", email="root@example.com", password="StrongPass!234")
@@ -41,6 +55,10 @@ class RoleBasedAccessTests(TestCase):
     def test_anonymous_staff_page_redirects_to_login(self):
         response = self.client.get(reverse("dashboard"))
         self.assertRedirects(response, f"{reverse('login')}?next={reverse('dashboard')}")
+
+    def test_customer_login_returns_to_public_home(self):
+        response = self.client.post(reverse("login"), {"username": "customer", "password": "StrongPass!234"})
+        self.assertRedirects(response, reverse("home"))
 
     def test_customer_role_cannot_access_staff_dashboard(self):
         self.client.force_login(self.customer)
@@ -50,6 +68,19 @@ class RoleBasedAccessTests(TestCase):
         self.client.force_login(self.clerk)
         self.assertEqual(self.client.get(reverse("dashboard")).status_code, 200)
         self.assertEqual(self.client.get(reverse("parcel_create")).status_code, 200)
+
+    def test_clerk_cannot_update_parcel_status(self):
+        self.client.force_login(self.clerk)
+        response = self.client.post(reverse("update_status", args=[1]), {"status": "in_transit"})
+        self.assertEqual(response.status_code, 403)
+
+    def test_dispatcher_can_view_management_not_management_portal(self):
+        self.client.force_login(self.dispatcher)
+        self.assertEqual(self.client.get(reverse("management_dashboard")).status_code, 403)
+
+    def test_branch_manager_can_open_management_portal(self):
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.get(reverse("management_dashboard")).status_code, 200)
 
     def test_clerk_cannot_manage_user_accounts(self):
         self.client.force_login(self.clerk)

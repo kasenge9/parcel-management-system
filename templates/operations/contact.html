@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Contact | MAKOS SACCO{% endblock %}
+{% block content %}
+<section class="page-wrap"><div class="container narrow">
+  <div class="eyebrow dark">GET IN TOUCH</div><h1 class="display-5 mb-3">Contact MAKOS SACCO</h1>
+  <p class="lead text-muted">For parcel enquiries, have your tracking number ready so staff can help locate the latest recorded update.</p>
+  <div class="row g-3 mt-2">
+    <div class="col-md-6"><article class="content-card h-100"><i class="bi bi-box-seam"></i><h2>Parcel enquiry</h2><p>Use the tracking page to check the latest status recorded in the system.</p><a class="btn btn-dark mt-3" href="{% url 'track' %}">Track a parcel</a></article></div>
+    <div class="col-md-6"><article class="content-card h-100"><i class="bi bi-geo-alt"></i><h2>Find a branch</h2><p>See active branch locations and contact numbers configured for this prototype.</p><a class="btn btn-outline-success mt-3" href="{% url 'branches' %}">View branches</a></article></div>
+  </div>
+  <p class="small text-muted mt-4">This prototype does not yet include a contact form or verified central contact details. Please confirm official contact channels with MAKOS SACCO before publishing.</p>
+</div></section>
+{% endblock %}
