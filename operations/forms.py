@@ -47,6 +47,7 @@ class ParcelForm(forms.ModelForm):
                 OperatorRoute.Verification.PUBLISHED,
                 OperatorRoute.Verification.CONFIRMED,
             ],
+            operator__name="MAKOS SACCO",
         ).select_related("operator", "origin", "destination")
         self.fields["operator_service_point"].queryset = OperatorServicePoint.objects.filter(
             is_active=True,
@@ -54,6 +55,7 @@ class ParcelForm(forms.ModelForm):
             accepts_parcels=True,
             operator__is_active=True,
             operator__parcel_service_confirmed=True,
+            operator__name="MAKOS SACCO",
         ).select_related("operator", "town")
 
     def clean(self):
