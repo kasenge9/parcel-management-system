@@ -5,13 +5,14 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.views import LoginView
 from django import forms
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from .decorators import role_required
-from .forms import ParcelForm
+from .forms import ParcelForm, TrackingUpdateForm
 from .models import Branch, Parcel, Payment, TrackingEvent
 from .roles import role_names
 
@@ -63,13 +64,32 @@ def contact(request):
 
 
 def track_parcel(request):
-    parcel, searched = None, False
+    parcel, searched, code = None, False, ""
     if request.method == "POST":
         searched = True
-        code = request.POST.get("tracking_number", "").strip().upper()
+        code = request.POST.get("tracking_number", "").strip().upper()[:16]
         if code:
-            parcel = Parcel.objects.filter(tracking_number=code).first()
-    return render(request, "operations/track.html", {"parcel": parcel, "searched": searched})
+            parcel = (
+                Parcel.objects.select_related("origin", "destination")
+                .prefetch_related("tracking_events")
+                .filter(tracking_number=code)
+                .first()
+            )
+    events = (
+        parcel.tracking_events.order_by("created_at", "pk")
+        if parcel is not None
+        else []
+    )
+    return render(
+        request,
+        "operations/track.html",
+        {
+            "parcel": parcel,
+            "events": events,
+            "searched": searched,
+            "tracking_number": code,
+        },
+    )
 
 
 @login_required
@@ -98,11 +118,34 @@ def dashboard(request):
 @login_required
 @permission_required("operations.view_parcel", raise_exception=True)
 def parcel_list(request):
-    parcels = Parcel.objects.select_related("sender", "recipient", "origin", "destination").order_by("-created_at")
+    parcels = Parcel.objects.select_related(
+        "sender", "recipient", "origin", "destination"
+    ).order_by("-created_at", "-pk")
     query = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "").strip()
     if query:
-        parcels = parcels.filter(tracking_number__icontains=query)
-    return render(request, "operations/parcel_list.html", {"parcels": parcels[:100], "query": query})
+        parcels = parcels.filter(
+            Q(tracking_number__icontains=query)
+            | Q(sender__full_name__icontains=query)
+            | Q(sender__phone__icontains=query)
+            | Q(recipient__full_name__icontains=query)
+            | Q(recipient__phone__icontains=query)
+        )
+    valid_statuses = {value for value, _ in Parcel.Status.choices}
+    if status in valid_statuses:
+        parcels = parcels.filter(status=status)
+    page = Paginator(parcels, 25).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "operations/parcel_list.html",
+        {
+            "page_obj": page,
+            "parcels": page.object_list,
+            "query": query,
+            "selected_status": status,
+            "status_choices": Parcel.Status.choices,
+        },
+    )
 
 
 @login_required
@@ -131,42 +174,54 @@ def parcel_detail(request, pk):
         Parcel.objects.select_related("sender", "recipient", "origin", "destination"),
         pk=pk,
     )
-    return render(request, "operations/parcel_detail.html", {
-        "parcel": parcel,
-        "events": parcel.tracking_events.select_related("created_by"),
-        "can_change_parcel": request.user.has_perm("operations.change_parcel"),
-    })
+    events = parcel.tracking_events.select_related("created_by").order_by(
+        "created_at", "pk"
+    )
+    can_update_status = request.user.is_superuser or request.user.groups.filter(
+        name__in=("System Administrator", "Branch Manager", "Dispatcher")
+    ).exists()
+    return render(
+        request,
+        "operations/parcel_detail.html",
+        {
+            "parcel": parcel,
+            "events": events,
+            "status_form": TrackingUpdateForm(initial={"status": parcel.status}),
+            "can_update_status": can_update_status,
+        },
+    )
 
 
 @login_required
 @role_required("System Administrator", "Branch Manager", "Dispatcher")
 def update_status(request, pk):
+    from django.core.exceptions import PermissionDenied
+
     if request.method != "POST":
-        from django.core.exceptions import PermissionDenied
         raise PermissionDenied("Parcel status changes must use POST.")
-    parcel = get_object_or_404(Parcel, pk=pk)
-    status = request.POST.get("status", "")
-    allowed = {value for value, _ in Parcel.Status.choices}
-    if status not in allowed:
-        messages.error(request, "Choose a valid parcel status.")
-    elif status == parcel.status:
-        messages.info(request, "Parcel already has that status.")
-    else:
-        with transaction.atomic():
+
+    with transaction.atomic():
+        parcel = get_object_or_404(
+            Parcel.objects.select_for_update(),
+            pk=pk,
+        )
+        form = TrackingUpdateForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Correct the tracking update and try again.")
+        elif form.cleaned_data["status"] == parcel.status:
+            messages.info(request, "Parcel already has that status.")
+        else:
+            status = form.cleaned_data["status"]
             parcel.status = status
             parcel.save(update_fields=["status", "updated_at"])
-            location = parcel.destination.name if status in {
-                Parcel.Status.ARRIVED,
-                Parcel.Status.READY_COLLECTION,
-                Parcel.Status.COLLECTED,
-            } else ""
             TrackingEvent.objects.create(
                 parcel=parcel,
                 status=status,
-                location=location,
+                location=form.cleaned_data["location"],
+                note=form.cleaned_data["note"],
                 created_by=request.user,
             )
-        messages.success(request, "Status and tracking history updated.")
+            messages.success(request, "Status and tracking history updated.")
     return redirect("parcel_detail", pk=parcel.pk)
 
 
