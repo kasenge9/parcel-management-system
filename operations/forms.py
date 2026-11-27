@@ -1,15 +1,24 @@
 from django import forms
-from .models import Branch, Customer, Parcel
+
+from .models import Branch, County, Customer, OperatorRoute, Parcel, Town
+
 
 class ParcelForm(forms.ModelForm):
     sender_name = forms.CharField(max_length=160, label="Sender name")
     sender_phone = forms.CharField(max_length=30, label="Sender phone")
     recipient_name = forms.CharField(max_length=160, label="Recipient name")
     recipient_phone = forms.CharField(max_length=30, label="Recipient phone")
+    destination_county = forms.ModelChoiceField(queryset=County.objects.all(), label="Destination county")
+    destination_town = forms.ModelChoiceField(queryset=Town.objects.none(), label="Destination town")
+    operator_route = forms.ModelChoiceField(
+        queryset=OperatorRoute.objects.none(), required=False,
+        label="Delivery operator / route",
+        empty_label="Leave unassigned — assign route later",
+    )
 
     class Meta:
         model = Parcel
-        fields = ["description", "weight_kg", "origin", "destination", "delivery_fee"]
+        fields = ["description", "weight_kg", "origin", "delivery_fee"]
         widgets = {
             "description": forms.TextInput(attrs={"placeholder": "Documents or parcel contents"}),
             "weight_kg": forms.NumberInput(attrs={"min": "0.01", "step": "0.01"}),
@@ -18,8 +27,33 @@ class ParcelForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["origin"].queryset = Branch.objects.filter(is_active=True)
-        self.fields["destination"].queryset = Branch.objects.filter(is_active=True)
+        self.fields["origin"].queryset = Branch.objects.filter(is_active=True).select_related("town")
+        county_id = self.data.get("destination_county") or self.initial.get("destination_county")
+        towns = Town.objects.select_related("county").all()
+        if county_id:
+            towns = towns.filter(county_id=county_id)
+        self.fields["destination_town"].queryset = towns
+        self.fields["operator_route"].queryset = OperatorRoute.objects.filter(
+            is_active=True,
+            parcel_service_confirmed=True,
+            operator__is_active=True,
+            operator__parcel_service_confirmed=True,
+            verification_status__in=[
+                OperatorRoute.Verification.PUBLISHED,
+                OperatorRoute.Verification.CONFIRMED,
+            ],
+        ).select_related("operator", "origin", "destination")
+
+    def clean(self):
+        cleaned = super().clean()
+        route = cleaned.get("operator_route")
+        origin = cleaned.get("origin")
+        destination_town = cleaned.get("destination_town")
+        if route and destination_town and route.destination_id != destination_town.id:
+            self.add_error("operator_route", "This operator route does not serve the selected destination town.")
+        if route and origin and origin.town_id and route.origin_id != origin.town_id:
+            self.add_error("operator_route", "This operator route does not start at the selected origin branch town.")
+        return cleaned
 
     def clean_weight_kg(self):
         value = self.cleaned_data["weight_kg"]
@@ -29,9 +63,18 @@ class ParcelForm(forms.ModelForm):
 
     def save(self, commit=True):
         parcel = super().save(commit=False)
-        sender, _ = Customer.objects.get_or_create(phone=self.cleaned_data["sender_phone"].strip(), defaults={"full_name": self.cleaned_data["sender_name"].strip()})
-        recipient, _ = Customer.objects.get_or_create(phone=self.cleaned_data["recipient_phone"].strip(), defaults={"full_name": self.cleaned_data["recipient_name"].strip()})
+        sender, _ = Customer.objects.get_or_create(
+            phone=self.cleaned_data["sender_phone"].strip(),
+            defaults={"full_name": self.cleaned_data["sender_name"].strip()},
+        )
+        recipient, _ = Customer.objects.get_or_create(
+            phone=self.cleaned_data["recipient_phone"].strip(),
+            defaults={"full_name": self.cleaned_data["recipient_name"].strip()},
+        )
         parcel.sender, parcel.recipient = sender, recipient
+        parcel.destination = None
+        parcel.destination_town = self.cleaned_data["destination_town"]
+        parcel.operator_route = self.cleaned_data.get("operator_route")
         if commit:
             parcel.save()
         return parcel
