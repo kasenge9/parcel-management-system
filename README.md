@@ -42,7 +42,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Visit `http://127.0.0.1:8000/`. Public pages include `/about/`, `/services/`, `/branches/`, `/contact/` and `/track/`. Staff must be assigned a role granting the requested permission. The first superuser can access `/staff/users/` to create accounts and assign roles, and `/management/` for the management overview.
+Visit `http://127.0.0.1:8000/`. Public pages include `/about/`, `/services/`, `/branches/`, `/destinations/`, `/contact/` and `/track/`. Staff must be assigned a role granting the requested permission. The first superuser can access `/staff/users/` to create accounts and assign roles, and `/management/` for the management overview.
 
 ## Database model and migrations
 
@@ -71,3 +71,19 @@ Before applying new constraints to an existing production database, audit existi
 Roles are Django groups, created/synchronized during `migrate` after app permissions exist. Existing accounts must be assigned to an appropriate group by a superuser before they can access staff pages. Role policy is an initial implementation and requires stakeholder/security review before production deployment.
 
 This is an academic MVP, not production-ready. Validate requirements with MAKOS SACCO stakeholders. Configure a strong `SECRET_KEY`, `DEBUG=False`, appropriate `ALLOWED_HOSTS`, secure HTTPS cookies and a production-grade database.
+
+## Kenya destinations and operator routes
+
+The public `/destinations/` page lists the seeded county/town directory and operator-published routes. It is a destination reference, not a promise that MAKOS has a staffed branch or delivery service in every listed town.
+
+After applying migrations, populate the 47 counties and the initial town directory:
+
+```powershell
+python manage.py migrate
+python manage.py seed_kenya_destinations
+python manage.py seed_published_operator_routes
+```
+
+The destination seed is idempotent and includes each county headquarters plus selected towns. The operator route seed records published Tahmeed and Modern Coast passenger routes as passenger services only. It deliberately leaves parcel acceptance disabled. An administrator must verify a carrier's parcel/cargo service, service point, and specific route before enabling parcel operations.
+
+The Django admin now manages counties, towns, transport operators, service points, routes, and ordered intermediate stops. Routes cannot be activated while unverified, and service points cannot be activated without verification. Keep source URLs and verification dates current. Historical Communications Authority station data is retained as research context and is not automatically imported as active outlets.
