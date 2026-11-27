@@ -98,7 +98,7 @@ def dashboard(request):
     }
     if request.user.has_perm("operations.view_payment"):
         counts["revenue"] = Payment.objects.aggregate(total=Sum("amount"))["total"] or 0
-    recent = Parcel.objects.select_related("sender", "recipient", "origin", "destination").order_by("-created_at")[:8]
+    recent = Parcel.objects.select_related("sender", "recipient", "origin", "destination", "destination_town__county", "operator_route__operator").order_by("-created_at")[:8]
     return render(request, "operations/dashboard.html", {
         "counts": counts,
         "recent_parcels": recent,
@@ -109,7 +109,7 @@ def dashboard(request):
 @login_required
 @permission_required("operations.view_parcel", raise_exception=True)
 def parcel_list(request):
-    parcels = Parcel.objects.select_related("sender", "recipient", "origin", "destination").order_by("-created_at")
+    parcels = Parcel.objects.select_related("sender", "recipient", "origin", "destination", "destination_town__county", "operator_route__operator").order_by("-created_at")
     query = request.GET.get("q", "").strip()
     if query:
         parcels = parcels.filter(tracking_number__icontains=query)
@@ -165,7 +165,7 @@ def parcel_create(request):
 @permission_required("operations.view_parcel", raise_exception=True)
 def parcel_detail(request, pk):
     parcel = get_object_or_404(
-        Parcel.objects.select_related("sender", "recipient", "origin", "destination"),
+        Parcel.objects.select_related("sender", "recipient", "origin", "destination", "destination_town__county", "operator_route__operator"),
         pk=pk,
     )
     can_update_tracking = request.user.is_superuser or request.user.groups.filter(
@@ -206,7 +206,7 @@ def update_status(request, pk):
 def management_dashboard(request):
     context = {
         "branch_count": Branch.objects.filter(is_active=True).count(),
-        "branches": Branch.objects.annotate(parcel_count=Count("origin_parcels")).order_by("name"),
+        "branches": Branch.objects.select_related("town__county").annotate(parcel_count=Count("origin_parcels")).order_by("name"),
         "can_view_finance": request.user.has_perm("operations.view_payment"),
     }
     if context["can_view_finance"]:
