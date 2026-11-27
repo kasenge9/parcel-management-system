@@ -61,11 +61,11 @@ class BranchAdmin(admin.ModelAdmin):
 
 @admin.register(Parcel)
 class ParcelAdmin(admin.ModelAdmin):
-    list_display = ("tracking_number", "sender", "recipient", "origin", "destination_town", "operator_route", "route_assignment_status", "status", "created_at")
+    list_display = ("tracking_number", "sender", "recipient", "origin", "destination_town", "operator_service_point", "operator_route", "route_assignment_status", "status", "created_at")
     list_filter = ("status", "origin", "destination_town", "created_at")
     search_fields = ("tracking_number", "sender__full_name", "recipient__full_name", "sender__phone", "recipient__phone")
     readonly_fields = ("tracking_number", "created_at", "updated_at")
-    autocomplete_fields = ("destination_town", "operator_route")
+    autocomplete_fields = ("destination_town", "operator_service_point", "operator_route")
 
 
 admin.site.register([Customer, TrackingEvent, Payment, Vehicle, Driver, Dispatch, DispatchItem])
