@@ -46,6 +46,7 @@ Replace `clerk1` with the real username. Assign only the role required for that 
 ## Access behavior
 
 - Unauthenticated users are redirected to login.
+- Successful logins land on the parcel list, which is available to all four staff roles; this avoids sending Clerks and Dispatchers to the restricted dashboard.
 - Authenticated users without an allowed role receive HTTP 403.
 - Public parcel tracking remains public.
 - Dashboard access is Administrator or Management because it displays revenue.
