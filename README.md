@@ -90,6 +90,6 @@ The Django admin now manages counties, towns, transport operators, service point
 
 ## Parcel registration destinations and route assignment
 
-Parcel registration uses the county/town directory. Staff select an origin branch, destination county, and destination town. A delivery operator route is optional and is offered only when it is active, verified/published, and explicitly confirmed for parcel service. The form validates that the selected route serves the chosen destination and origin town.
+Parcel registration uses the county/town directory. Staff select an origin branch, destination county, and destination town. Link each existing SACCO branch to its town in Django Admin before expecting route matching from that origin. A delivery operator route is optional and is offered only when it is active, verified/published, and explicitly confirmed for parcel service. The form validates that the selected route serves the chosen destination and origin town.
 
 A parcel can still be registered when no eligible route exists. It is saved with the selected destination town and no operator route, and its route assignment status is `awaiting_route_assignment`. An authorized administrator can assign a suitable route later after verifying the carrier and service. The legacy destination-branch field remains nullable for compatibility with existing parcel records.
