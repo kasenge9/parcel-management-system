@@ -13,7 +13,7 @@ from django.urls import reverse
 
 from .decorators import role_required
 from .forms import ParcelForm, TrackingUpdateForm
-from .models import Branch, County, OperatorRoute, OperatorServicePoint, Parcel, Payment, TrackingEvent
+from .models import Branch, County, OperatorRoute, OperatorServicePoint, Parcel, Payment, TrackingEvent, Town
 from .roles import role_names
 
 
@@ -132,7 +132,9 @@ def parcel_create(request):
             )
         messages.success(request, f"Parcel registered. Tracking code: {parcel.tracking_number}")
         return redirect("parcel_detail", pk=parcel.pk)
-    return render(request, "operations/parcel_form.html", {"form": form})
+    towns = Town.objects.values("id", "county_id")
+    town_county_map = {str(town["id"]): str(town["county_id"]) for town in towns}
+    return render(request, "operations/parcel_form.html", {"form": form, "town_county_map": town_county_map})
 
 
 @login_required
