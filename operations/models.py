@@ -258,7 +258,9 @@ class Parcel(models.Model):
                 errors["operator_route"] = "Only active, verified routes confirmed for parcel service can be assigned."
             if self.destination_town_id and route.destination_id != self.destination_town_id:
                 errors["operator_route"] = "The selected route does not serve this destination town."
-            if self.origin_id and self.origin.town_id and route.origin_id != self.origin.town_id:
+            if self.origin_id and not self.origin.town_id:
+                errors["operator_route"] = "Set the origin branch town before assigning an operator route."
+            elif self.origin_id and route.origin_id != self.origin.town_id:
                 errors["operator_route"] = "The selected route does not match the parcel origin branch town."
         if errors:
             raise ValidationError(errors)
