@@ -13,7 +13,7 @@ from django.urls import reverse
 
 from .decorators import role_required
 from .forms import ParcelForm, TrackingUpdateForm
-from .models import Branch, Parcel, Payment, TrackingEvent
+from .models import Branch, County, OperatorRoute, Parcel, Payment, TrackingEvent
 from .roles import role_names
 
 
@@ -57,6 +57,15 @@ def services(request):
 def branches(request):
     locations = Branch.objects.filter(is_active=True).order_by("name")
     return render(request, "operations/branches.html", {"branches": locations})
+
+
+def destinations(request):
+    counties = County.objects.prefetch_related("towns").all()
+    routes = OperatorRoute.objects.filter(
+        is_active=True,
+        verification_status__in=[OperatorRoute.Verification.PUBLISHED, OperatorRoute.Verification.CONFIRMED],
+    ).select_related("operator", "origin__county", "destination__county").prefetch_related("stops__town")
+    return render(request, "operations/destinations.html", {"counties": counties, "routes": routes})
 
 
 def contact(request):
