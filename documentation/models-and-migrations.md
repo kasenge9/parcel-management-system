@@ -26,9 +26,9 @@ The database enforces the following invariants, including for writes that bypass
 | Model | Rule | Database constraint |
 | --- | --- | --- |
 | Parcel | Weight must be greater than zero | `parcel_weight_gt_zero` |
-| Parcel | Delivery fee must be zero or greater | `parcel_delivery_fee_nonnegative` |
+| Parcel | Delivery fee must be zero or greater | `parcel_fee_nonnegative` |
 | Payment | Payment amount must be greater than zero | `payment_amount_gt_zero` |
-| Dispatch | Arrival must be null or at/after departure | `dispatch_arrival_after_departure` |
+| Dispatch | Arrival must be null or at/after departure | `dispatch_arrival_after_depart` |
 
 The model `clean()` methods provide readable validation errors for forms and application code. Database constraints are the final integrity boundary.
 
