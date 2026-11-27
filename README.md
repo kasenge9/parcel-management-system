@@ -24,19 +24,39 @@ Copy-Item .env.example .env
 
 Create a MySQL database (default configuration expects `makos_parcels`, user `root`, local host and port 3306), then update `.env` with your own database username/password. Never commit `.env` or production credentials.
 
+For a local SQLite evaluation, set these values in `.env`:
+
+```dotenv
+DB_ENGINE=django.db.backends.sqlite3
+DB_NAME=db.sqlite3
+```
+
+Apply the committed migrations and run the checks:
+
 ```powershell
-python manage.py makemigrations operations
 python manage.py migrate
-python manage.py createsuperuser
+python manage.py check
+python manage.py makemigrations --check --dry-run
 python manage.py test
+python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Visit `http://127.0.0.1:8000/`. Public pages include `/about/`, `/services/`, `/branches/`, `/contact/` and `/track/`. Staff must be assigned a role granting the requested permission. The first superuser can access `/staff/users/` to create accounts and assign roles, and `/management/` for the management overview. To use SQLite for a quick local evaluation only, set `DB_ENGINE=django.db.backends.sqlite3` in `.env`.
+Visit `http://127.0.0.1:8000/`. Public pages include `/about/`, `/services/`, `/branches/`, `/contact/` and `/track/`. Staff must be assigned a role granting the requested permission. The first superuser can access `/staff/users/` to create accounts and assign roles, and `/management/` for the management overview.
 
-## Development branch
+## Database model and migrations
 
-Website foundation, role-based access, and staff/management portal work are on `feature/makos-website-foundation`. The `main` branch remains unchanged until review and merge.
+The initial schema is in `operations/migrations/0001_initial.py`. Subsequent model constraints are added in separate, forward-only migrations; do not edit an already-applied migration. Review [the model and migration guide](documentation/models-and-migrations.md) before changing domain fields or deletion rules.
+
+Parcel tracking numbers are generated with the `MK` prefix and are unique and indexed. Parcel weights and payment amounts must be greater than zero; delivery fees cannot be negative; a dispatch arrival cannot precede its departure. These rules are checked both by Django model validation and database constraints where applicable.
+
+Before applying new constraints to an existing production database, audit existing rows for violations and resolve them through an approved data-cleanup process. Do not silently discard parcel, payment or customer records.
+
+## Development
+
+- `main` contains the website foundation and the initial operations migration.
+- `feature/model-validation-and-db-constraints` contains the follow-up model validation, database constraints, tests, documentation and CI work while it is under review.
+- Run `python manage.py makemigrations --check --dry-run` to detect model changes that do not have a migration.
 
 ## Role permission summary
 
