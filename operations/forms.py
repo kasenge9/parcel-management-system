@@ -51,7 +51,9 @@ class ParcelForm(forms.ModelForm):
         destination_town = cleaned.get("destination_town")
         if route and destination_town and route.destination_id != destination_town.id:
             self.add_error("operator_route", "This operator route does not serve the selected destination town.")
-        if route and origin and origin.town_id and route.origin_id != origin.town_id:
+        if route and origin and not origin.town_id:
+            self.add_error("operator_route", "Set the origin branch town before selecting an operator route.")
+        elif route and origin and route.origin_id != origin.town_id:
             self.add_error("operator_route", "This operator route does not start at the selected origin branch town.")
         return cleaned
 
