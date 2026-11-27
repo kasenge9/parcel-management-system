@@ -51,6 +51,14 @@ class OperatorRouteAdmin(admin.ModelAdmin):
     inlines = (RouteStopInline,)
 
 
+@admin.register(Branch)
+class BranchAdmin(admin.ModelAdmin):
+    list_display = ("name", "location", "town", "phone", "is_active")
+    list_filter = ("is_active", "town__county")
+    search_fields = ("name", "location", "town__name")
+    autocomplete_fields = ("town",)
+
+
 @admin.register(Parcel)
 class ParcelAdmin(admin.ModelAdmin):
     list_display = ("tracking_number", "sender", "recipient", "origin", "destination_town", "operator_route", "status", "created_at")
@@ -60,4 +68,4 @@ class ParcelAdmin(admin.ModelAdmin):
     autocomplete_fields = ("destination_town", "operator_route")
 
 
-admin.site.register([Branch, Customer, TrackingEvent, Payment, Vehicle, Driver, Dispatch, DispatchItem])
+admin.site.register([Customer, TrackingEvent, Payment, Vehicle, Driver, Dispatch, DispatchItem])
