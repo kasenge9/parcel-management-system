@@ -53,7 +53,7 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "dashboard"
+LOGIN_REDIRECT_URL = "parcel_list"
 LOGOUT_REDIRECT_URL = "home"
 
 SESSION_COOKIE_AGE = 1800
