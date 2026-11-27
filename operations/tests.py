@@ -462,7 +462,7 @@ class KenyaDestinationDirectoryTests(TestCase):
         origin = Town.objects.create(county=county, name="Origin")
         destination = Town.objects.create(county=county, name="Destination")
         operator = TransportOperator.objects.create(
-            name="Test Coach", category=TransportOperator.Category.PASSENGER
+            name="MAKOS SACCO", category=TransportOperator.Category.PASSENGER
         )
         route = OperatorRoute(
             operator=operator, origin=origin, destination=destination,
@@ -476,7 +476,7 @@ class KenyaDestinationDirectoryTests(TestCase):
         origin = Town.objects.create(county=county, name="Sample Origin")
         destination = Town.objects.create(county=county, name="Sample Destination")
         operator = TransportOperator.objects.create(
-            name="Sample Coach", category=TransportOperator.Category.PASSENGER
+            name="MAKOS SACCO", category=TransportOperator.Category.PASSENGER
         )
         route = OperatorRoute.objects.create(
             operator=operator, origin=origin, destination=destination,
@@ -533,7 +533,7 @@ class ParcelRegistrationDestinationTests(TestCase):
 
     def test_registration_accepts_matching_verified_parcel_route(self):
         operator = TransportOperator.objects.create(
-            name="Confirmed Courier",
+            name="MAKOS SACCO",
             category=TransportOperator.Category.COURIER,
             parcel_service_confirmed=True,
         )
@@ -560,7 +560,7 @@ class ParcelRegistrationDestinationTests(TestCase):
 
     def test_registration_can_select_verified_receiving_courier_point(self):
         operator = TransportOperator.objects.create(
-            name="Fargo Test Courier",
+            name="MAKOS SACCO",
             category=TransportOperator.Category.COURIER,
             parcel_service_confirmed=True,
         )
@@ -588,7 +588,7 @@ class ParcelRegistrationDestinationTests(TestCase):
 
     def test_registration_rejects_route_for_different_destination(self):
         operator = TransportOperator.objects.create(
-            name="Another Courier",
+            name="MAKOS SACCO",
             category=TransportOperator.Category.COURIER,
             parcel_service_confirmed=True,
         )
