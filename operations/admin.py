@@ -53,10 +53,11 @@ class OperatorRouteAdmin(admin.ModelAdmin):
 
 @admin.register(Parcel)
 class ParcelAdmin(admin.ModelAdmin):
-    list_display = ("tracking_number", "sender", "recipient", "origin", "destination", "status", "created_at")
-    list_filter = ("status", "origin", "destination", "created_at")
+    list_display = ("tracking_number", "sender", "recipient", "origin", "destination_town", "operator_route", "status", "created_at")
+    list_filter = ("status", "origin", "destination_town", "created_at")
     search_fields = ("tracking_number", "sender__full_name", "recipient__full_name", "sender__phone", "recipient__phone")
     readonly_fields = ("tracking_number", "created_at", "updated_at")
+    autocomplete_fields = ("destination_town", "operator_route")
 
 
 admin.site.register([Branch, Customer, TrackingEvent, Payment, Vehicle, Driver, Dispatch, DispatchItem])
