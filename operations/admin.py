@@ -27,6 +27,13 @@ class TransportOperatorAdmin(admin.ModelAdmin):
     list_filter = ("category", "parcel_service_confirmed", "is_active")
     search_fields = ("name",)
 
+    def has_add_permission(self, request):
+        # MAKOS SACCO is the sole operator; staff must not add other operators.
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(OperatorServicePoint)
 class OperatorServicePointAdmin(admin.ModelAdmin):
