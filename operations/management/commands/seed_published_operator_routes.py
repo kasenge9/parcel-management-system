@@ -3,11 +3,11 @@ from datetime import date
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from operations.models import County, OperatorRoute, Town, TransportOperator
+from operations.models import County, OperatorRoute, OperatorServicePoint, Town, TransportOperator
 
 
 TAHMEED_ROUTES = [
-    ("Mumias", "Kakamega", "Kakamega"),
+    ("Mumias", "Kakamega", "Mombasa"),
     ("Mombasa", "Mombasa", "Nairobi"),
     ("Nairobi", "Nairobi", "Kisumu"),
     ("Nakuru", "Nakuru", "Eldoret"),
@@ -20,6 +20,7 @@ TAHMEED_ROUTES = [
     ("Busia", "Busia", "Nairobi"),
     ("Eldoret", "Uasin Gishu", "Mombasa"),
     ("Kakamega", "Kakamega", "Mombasa"),
+    ("Keroka", "Kisii", "Mombasa"),
 ]
 MODERN_COAST_ROUTES = [
     ("Nairobi", "Nairobi", "Mombasa"),
@@ -46,6 +47,50 @@ class Command(BaseCommand):
             ("Tahmeed Coach", "https://tahmeedcoach.co.ke/", TAHMEED_ROUTES),
             ("Modern Coast", "https://moderncoast.co.ke/", MODERN_COAST_ROUTES),
         ]
+        # Fargo Courier's own branch directory publishes these towns/outlets.
+        # Reconfirm the selected outlet before handing over a parcel.
+        fargo, _ = TransportOperator.objects.update_or_create(
+            name="Fargo Courier",
+            defaults={
+                "category": TransportOperator.Category.COURIER,
+                "website": "https://www.fargocourier.co.ke/our-branches/",
+                "parcel_service_confirmed": True,
+                "is_active": True,
+                "notes": "Courier operator; service points below are taken from its published branch directory. Confirm opening and acceptance at the selected outlet before dispatch.",
+            },
+        )
+        fargo_points = [
+            ("Limuru", "Kiambu"), ("Kitengela", "Kajiado"),
+            ("Ruiru", "Kiambu"), ("Thika", "Kiambu"),
+            ("Juja", "Kiambu"), ("Nairobi", "Nairobi"),
+            ("Ngong", "Kajiado"), ("Ongata Rongai", "Kajiado"),
+        ]
+        for town_name, county_name in fargo_points:
+            town = get_town(town_name, county_name)
+            OperatorServicePoint.objects.update_or_create(
+                operator=fargo, town=town,
+                defaults={
+                    "source_url": "https://www.fargocourier.co.ke/our-branches/",
+                    "last_verified": date(2026, 11, 27),
+                    "is_verified": True,
+                    "accepts_parcels": True,
+                    "is_active": True,
+                    "address": "See operator branch directory for exact outlet address.",
+                },
+            )
+
+        # Historical G4S stations are not automatically treated as current.
+        TransportOperator.objects.update_or_create(
+            name="G4S",
+            defaults={
+                "category": TransportOperator.Category.COURIER,
+                "website": "https://www.g4s.com/",
+                "parcel_service_confirmed": False,
+                "is_active": True,
+                "notes": "Historical station coverage is available in the CA 2022 baseline survey. Current parcel acceptance and branches require direct verification.",
+            },
+        )
+
         route_count = 0
         for name, website, routes in definitions:
             operator, _ = TransportOperator.objects.update_or_create(
