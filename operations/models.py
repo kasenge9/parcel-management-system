@@ -222,6 +222,10 @@ class Parcel(models.Model):
         OperatorRoute, null=True, blank=True, on_delete=models.PROTECT,
         related_name="parcels"
     )
+    operator_service_point = models.ForeignKey(
+        OperatorServicePoint, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="parcels"
+    )
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(
         max_length=24, choices=Status.choices, default=Status.REGISTERED
@@ -250,6 +254,15 @@ class Parcel(models.Model):
             errors["weight_kg"] = "Parcel weight must be greater than zero."
         if self.delivery_fee is not None and self.delivery_fee < 0:
             errors["delivery_fee"] = "Delivery fee cannot be negative."
+        if self.operator_service_point_id:
+            service_point = self.operator_service_point
+            if (not service_point.is_active or not service_point.is_verified
+                    or not service_point.accepts_parcels
+                    or not service_point.operator.is_active
+                    or not service_point.operator.parcel_service_confirmed):
+                errors["operator_service_point"] = "Only active, verified service points accepting parcels can be assigned."
+            if self.destination_town_id and service_point.town_id != self.destination_town_id:
+                errors["operator_service_point"] = "The selected service point does not serve this destination town."
         if self.operator_route_id:
             route = self.operator_route
             if (not route.is_active or not route.parcel_service_confirmed
@@ -258,6 +271,8 @@ class Parcel(models.Model):
                 errors["operator_route"] = "Only active, verified routes confirmed for parcel service can be assigned."
             if self.destination_town_id and route.destination_id != self.destination_town_id:
                 errors["operator_route"] = "The selected route does not serve this destination town."
+            if self.operator_service_point_id and self.operator_service_point.operator_id != route.operator_id:
+                errors["operator_route"] = "The selected route and receiving service point must belong to the same operator."
             if self.origin_id and not self.origin.town_id:
                 errors["operator_route"] = "Set the origin branch town before assigning an operator route."
             elif self.origin_id and route.origin_id != self.origin.town_id:
