@@ -62,10 +62,17 @@ def branches(request):
 def destinations(request):
     counties = County.objects.prefetch_related("towns").all()
     routes = OperatorRoute.objects.filter(
+        operator__name="MAKOS SACCO",
+        operator__is_active=True,
         is_active=True,
         verification_status__in=[OperatorRoute.Verification.PUBLISHED, OperatorRoute.Verification.CONFIRMED],
     ).select_related("operator", "origin__county", "destination__county").prefetch_related("stops__town")
-    service_points = OperatorServicePoint.objects.filter(is_active=True, is_verified=True).select_related("operator", "town__county").order_by("operator__name", "town__name")
+    service_points = OperatorServicePoint.objects.filter(
+        operator__name="MAKOS SACCO",
+        operator__is_active=True,
+        is_active=True,
+        is_verified=True,
+    ).select_related("operator", "town__county").order_by("operator__name", "town__name")
     return render(request, "operations/destinations.html", {"counties": counties, "routes": routes, "service_points": service_points})
 
 
@@ -145,6 +152,7 @@ def parcel_create(request):
             OperatorRoute.Verification.PUBLISHED,
             OperatorRoute.Verification.CONFIRMED,
         ],
+        operator__name="MAKOS SACCO",
     ).values("id", "origin_id", "destination_id")
     route_map = {
         str(route["id"]): {
@@ -159,6 +167,7 @@ def parcel_create(request):
         accepts_parcels=True,
         operator__is_active=True,
         operator__parcel_service_confirmed=True,
+        operator__name="MAKOS SACCO",
     ).values("id", "town_id")
     service_point_map = {
         str(point["id"]): str(point["town_id"])
