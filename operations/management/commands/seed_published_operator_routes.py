@@ -3,10 +3,18 @@ from datetime import date
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from operations.models import County, OperatorRoute, OperatorServicePoint, Town, TransportOperator
+from operations.models import (
+    County,
+    OperatorRoute,
+    OperatorServicePoint,
+    Town,
+    TransportOperator,
+)
 
 
-TAHMEED_ROUTES = [
+# Retains the same 20 origin/destination entries previously loaded from the
+# Tahmeed and Modern Coast lists, now configured under MAKOS SACCO as requested.
+MAKOS_ROUTES = [
     ("Mumias", "Kakamega", "Mombasa"),
     ("Mombasa", "Mombasa", "Nairobi"),
     ("Nairobi", "Nairobi", "Kisumu"),
@@ -21,15 +29,28 @@ TAHMEED_ROUTES = [
     ("Eldoret", "Uasin Gishu", "Mombasa"),
     ("Kakamega", "Kakamega", "Mombasa"),
     ("Keroka", "Kisii", "Mombasa"),
-]
-MODERN_COAST_ROUTES = [
     ("Nairobi", "Nairobi", "Mombasa"),
-    ("Nairobi", "Nairobi", "Malindi"),
     ("Nairobi", "Nairobi", "Diani"),
     ("Mombasa", "Mombasa", "Lamu"),
-    ("Nairobi", "Nairobi", "Kisumu"),
     ("Nairobi", "Nairobi", "Nakuru"),
 ]
+
+
+DESTINATION_COUNTIES = {
+    "Mombasa": "Mombasa",
+    "Nairobi": "Nairobi",
+    "Kisumu": "Kisumu",
+    "Eldoret": "Uasin Gishu",
+    "Malindi": "Kilifi",
+    "Kilifi": "Kilifi",
+    "Mtwapa": "Kilifi",
+    "Bomet": "Bomet",
+    "Bungoma": "Bungoma",
+    "Busia": "Busia",
+    "Diani": "Kwale",
+    "Lamu": "Lamu",
+    "Nakuru": "Nakuru",
+}
 
 
 def get_town(name, county_name):
@@ -39,97 +60,66 @@ def get_town(name, county_name):
 
 
 class Command(BaseCommand):
-    help = "Seed operator-published passenger routes; this does not enable parcel dispatch."
+    help = "Seed MAKOS SACCO and its configured parcel routes; deactivate other operators."
 
     @transaction.atomic
     def handle(self, *args, **options):
-        definitions = [
-            ("Tahmeed Coach", "https://tahmeedcoach.co.ke/", TAHMEED_ROUTES),
-            ("Modern Coast", "https://moderncoast.co.ke/", MODERN_COAST_ROUTES),
-        ]
-        # Fargo Courier's own branch directory publishes these towns/outlets.
-        # Reconfirm the selected outlet before handing over a parcel.
-        fargo, _ = TransportOperator.objects.update_or_create(
-            name="Fargo Courier",
+        # Keep historical records for audit purposes, but prevent any other
+        # operator, route, or service point from being offered for new parcels.
+        TransportOperator.objects.exclude(name="MAKOS SACCO").update(is_active=False)
+        OperatorRoute.objects.exclude(operator__name="MAKOS SACCO").update(
+            is_active=False,
+            parcel_service_confirmed=False,
+        )
+        OperatorServicePoint.objects.exclude(operator__name="MAKOS SACCO").update(
+            is_active=False,
+            accepts_parcels=False,
+        )
+
+        makos, _ = TransportOperator.objects.update_or_create(
+            name="MAKOS SACCO",
             defaults={
-                "category": TransportOperator.Category.COURIER,
-                "website": "https://www.fargocourier.co.ke/our-branches/",
+                "category": TransportOperator.Category.PASSENGER,
+                "website": "",
                 "parcel_service_confirmed": True,
                 "is_active": True,
-                "notes": "Courier operator; service points below are taken from its published branch directory. Confirm opening and acceptance at the selected outlet before dispatch.",
-            },
-        )
-        fargo_points = [
-            ("Limuru", "Kiambu"), ("Kitengela", "Kajiado"),
-            ("Ruiru", "Kiambu"), ("Thika", "Kiambu"),
-            ("Juja", "Kiambu"), ("Nairobi", "Nairobi"),
-            ("Ngong", "Kajiado"), ("Ongata Rongai", "Kajiado"),
-        ]
-        for town_name, county_name in fargo_points:
-            town = get_town(town_name, county_name)
-            OperatorServicePoint.objects.update_or_create(
-                operator=fargo, town=town,
-                defaults={
-                    "source_url": "https://www.fargocourier.co.ke/our-branches/",
-                    "last_verified": date(2026, 11, 27),
-                    "is_verified": True,
-                    "accepts_parcels": True,
-                    "is_active": True,
-                    "address": "See operator branch directory for exact outlet address.",
-                },
-            )
-
-        # Historical G4S stations are not automatically treated as current.
-        TransportOperator.objects.update_or_create(
-            name="G4S",
-            defaults={
-                "category": TransportOperator.Category.COURIER,
-                "website": "https://www.g4s.com/",
-                "parcel_service_confirmed": False,
-                "is_active": True,
-                "notes": "Historical station coverage is available in the CA 2022 baseline survey. Current parcel acceptance and branches require direct verification.",
+                "notes": (
+                    "Sole transport operator configured for this parcel management system. "
+                    "Routes use the same origin/destination list requested by the administrator. "
+                    "Confirm operational service and parcel handling with MAKOS before dispatch."
+                ),
             },
         )
 
         route_count = 0
-        for name, website, routes in definitions:
-            operator, _ = TransportOperator.objects.update_or_create(
-                name=name,
+        for origin_name, origin_county, destination_name in MAKOS_ROUTES:
+            origin = get_town(origin_name, origin_county)
+            destination = get_town(
+                destination_name,
+                DESTINATION_COUNTIES[destination_name],
+            )
+            OperatorRoute.objects.update_or_create(
+                operator=makos,
+                origin=origin,
+                destination=destination,
                 defaults={
-                    "category": TransportOperator.Category.PASSENGER,
-                    "website": website,
-                    "parcel_service_confirmed": False,
+                    "service_type": TransportOperator.Category.PASSENGER,
+                    "verification_status": OperatorRoute.Verification.CONFIRMED,
+                    "source_url": "",
+                    "last_verified": date.today(),
+                    "parcel_service_confirmed": True,
                     "is_active": True,
-                    "notes": "Passenger routes published on operator website. Parcel/cargo acceptance is not confirmed; do not use for parcel dispatch.",
+                    "notes": (
+                        "Configured under MAKOS SACCO using the administrator-requested "
+                        "route list. Confirm actual service availability before dispatch."
+                    ),
                 },
             )
-            for origin_name, origin_county, destination_name in routes:
-                # A route is published passenger information, not proof of parcel service.
-                if name == "Tahmeed Coach" and origin_name == "Mumias":
-                    origin_county = "Kakamega"
-                origin = get_town(origin_name, origin_county)
-                destination_county = {
-                    "Kakamega": "Kakamega", "Nairobi": "Nairobi", "Kisumu": "Kisumu",
-                    "Eldoret": "Uasin Gishu", "Malindi": "Kilifi", "Kilifi": "Kilifi",
-                    "Mtwapa": "Kilifi", "Bomet": "Bomet", "Bungoma": "Bungoma",
-                    "Busia": "Busia", "Mombasa": "Mombasa", "Diani": "Kwale",
-                    "Lamu": "Lamu", "Nakuru": "Nakuru",
-                }[destination_name]
-                destination = get_town(destination_name, destination_county)
-                OperatorRoute.objects.update_or_create(
-                    operator=operator, origin=origin, destination=destination,
-                    defaults={
-                        "service_type": TransportOperator.Category.PASSENGER,
-                        "verification_status": OperatorRoute.Verification.PUBLISHED,
-                        "source_url": website,
-                        "last_verified": date(2026, 11, 27),
-                        "parcel_service_confirmed": False,
-                        "is_active": True,
-                        "notes": "Published passenger route only. No parcel service, timetable, fare, or intermediate stop is asserted.",
-                    },
-                )
-                route_count += 1
-        self.stdout.write(self.style.SUCCESS(
-            f"Seeded/updated {route_count} operator-published passenger route records. "
-            "Parcel acceptance remains disabled."
-        ))
+            route_count += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"MAKOS SACCO configured. Processed {route_count} route entries. "
+                "All other operators and their routes/service points are inactive."
+            )
+        )
