@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Services | MAKOS SACCO{% endblock %}
+{% block content %}
+<section class="page-wrap">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="eyebrow dark">PARCEL SERVICES</div>
+      <h1 class="display-5">Tools for every stage.</h1>
+      <p class="text-muted mx-auto" style="max-width:650px">A growing set of digital tools for parcel registration, tracking and branch operations. Availability depends on the current development stage.</p>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-4"><article class="content-card"><i class="bi bi-upc-scan"></i><h2>Parcel tracking</h2><p>Look up a parcel using its unique tracking number and view recorded status updates.</p><span class="badge text-bg-success mt-3">Available in prototype</span></article></div>
+      <div class="col-md-6 col-lg-4"><article class="content-card"><i class="bi bi-clipboard-plus"></i><h2>Parcel registration</h2><p>Staff can capture sender, recipient, route, parcel description, weight and delivery fee.</p><span class="badge text-bg-success mt-3">Available to staff</span></article></div>
+      <div class="col-md-6 col-lg-4"><article class="content-card"><i class="bi bi-signpost-split"></i><h2>Branch operations</h2><p>Prepare branch transfers, parcel handoffs and dispatch workflows.</p><span class="badge text-bg-secondary mt-3">Planned enhancement</span></article></div>
+      <div class="col-md-6 col-lg-4"><article class="content-card"><i class="bi bi-wallet2"></i><h2>Payments and receipts</h2><p>Extend payment records with reconciliation, M-Pesa verification and printable receipts.</p><span class="badge text-bg-secondary mt-3">Planned enhancement</span></article></div>
+      <div class="col-md-6 col-lg-4"><article class="content-card"><i class="bi bi-bell"></i><h2>Delivery notifications</h2><p>Notify customers when parcels are registered, dispatched, arrived or ready for collection.</p><span class="badge text-bg-secondary mt-3">Planned enhancement</span></article></div>
+      <div class="col-md-6 col-lg-4"><article class="content-card"><i class="bi bi-file-earmark-bar-graph"></i><h2>Reports and analytics</h2><p>Provide operational summaries, financial reports and branch performance insights.</p><span class="badge text-bg-secondary mt-3">Planned enhancement</span></article></div>
+    </div>
+    <div class="text-center mt-5"><a class="btn btn-dark" href="{% url 'track' %}">Track your parcel</a></div>
+  </div>
+</section>
+{% endblock %}
