@@ -18,6 +18,10 @@ from .models import (
     Parcel,
     Payment,
     TrackingEvent,
+    TransportOperator,
+    OperatorRoute,
+    County,
+    Town,
     Vehicle,
 )
 from .roles import ROLE_PERMISSIONS, sync_role_groups
@@ -443,3 +447,40 @@ class ParcelTrackingWorkflowTests(TestCase):
         self.assertContains(response, "Parcel accepted")
         self.assertNotContains(response, self.sender.phone)
         self.assertNotContains(response, self.recipient.phone)
+
+
+
+class KenyaDestinationDirectoryTests(TestCase):
+    def test_destination_page_loads(self):
+        response = self.client.get(reverse("destinations"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Destinations across Kenya")
+
+    def test_route_cannot_be_activated_without_verification(self):
+        county = County.objects.create(name="Test County", code=99)
+        origin = Town.objects.create(county=county, name="Origin")
+        destination = Town.objects.create(county=county, name="Destination")
+        operator = TransportOperator.objects.create(
+            name="Test Coach", category=TransportOperator.Category.PASSENGER
+        )
+        route = OperatorRoute(
+            operator=operator, origin=origin, destination=destination,
+            service_type=TransportOperator.Category.PASSENGER, is_active=True,
+        )
+        with self.assertRaises(ValidationError):
+            route.full_clean()
+
+    def test_passenger_route_does_not_assume_parcel_acceptance(self):
+        county = County.objects.create(name="Sample County", code=98)
+        origin = Town.objects.create(county=county, name="Sample Origin")
+        destination = Town.objects.create(county=county, name="Sample Destination")
+        operator = TransportOperator.objects.create(
+            name="Sample Coach", category=TransportOperator.Category.PASSENGER
+        )
+        route = OperatorRoute.objects.create(
+            operator=operator, origin=origin, destination=destination,
+            service_type=TransportOperator.Category.PASSENGER,
+            verification_status=OperatorRoute.Verification.PUBLISHED,
+            is_active=True,
+        )
+        self.assertFalse(route.parcel_service_confirmed)
