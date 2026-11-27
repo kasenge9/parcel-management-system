@@ -495,25 +495,34 @@ class ParcelRegistrationDestinationTests(TestCase):
         )
         cls.clerk.groups.add(Group.objects.get(name="Parcel Clerk"))
         cls.county = County.objects.create(name="Registration County", code=97)
+        cls.origin_town = Town.objects.create(county=cls.county, name="Dispatch Town")
         cls.town = Town.objects.create(county=cls.county, name="Registration Town")
         cls.origin = Branch.objects.create(
-            name="Registration Origin", location="Origin town", town=cls.town
+            name="Registration Origin", location="Origin town", town=cls.origin_town
         )
 
-    def test_parcel_can_be_registered_without_route_assignment(self):
-        self.client.force_login(self.clerk)
-        response = self.client.post(reverse("parcel_create"), {
+    def registration_payload(self, sender_phone, recipient_phone, **extra):
+        payload = {
             "sender_name": "Sender One",
-            "sender_phone": "+254700111111",
+            "sender_phone": sender_phone,
             "recipient_name": "Recipient One",
-            "recipient_phone": "+254700222222",
+            "recipient_phone": recipient_phone,
             "description": "Documents",
             "weight_kg": "1.25",
             "origin": self.origin.pk,
             "destination_county": self.county.pk,
             "destination_town": self.town.pk,
             "delivery_fee": "100.00",
-        })
+        }
+        payload.update(extra)
+        return payload
+
+    def test_parcel_can_be_registered_without_route_assignment(self):
+        self.client.force_login(self.clerk)
+        response = self.client.post(
+            reverse("parcel_create"),
+            self.registration_payload("+254700111111", "+254700222222"),
+        )
         self.assertEqual(response.status_code, 302)
         parcel = Parcel.objects.get(sender__phone="+254700111111")
         self.assertEqual(parcel.destination_town, self.town)
@@ -521,16 +530,43 @@ class ParcelRegistrationDestinationTests(TestCase):
         self.assertIsNone(parcel.operator_route)
         self.assertEqual(parcel.route_assignment_status, "awaiting_route_assignment")
 
+    def test_registration_accepts_matching_verified_parcel_route(self):
+        operator = TransportOperator.objects.create(
+            name="Confirmed Courier",
+            category=TransportOperator.Category.COURIER,
+            parcel_service_confirmed=True,
+        )
+        route = OperatorRoute.objects.create(
+            operator=operator,
+            origin=self.origin_town,
+            destination=self.town,
+            service_type=TransportOperator.Category.COURIER,
+            verification_status=OperatorRoute.Verification.CONFIRMED,
+            parcel_service_confirmed=True,
+            is_active=True,
+        )
+        self.client.force_login(self.clerk)
+        response = self.client.post(
+            reverse("parcel_create"),
+            self.registration_payload(
+                "+254700333333", "+254700444444", operator_route=route.pk
+            ),
+        )
+        self.assertEqual(response.status_code, 302)
+        parcel = Parcel.objects.get(sender__phone="+254700333333")
+        self.assertEqual(parcel.operator_route, route)
+        self.assertEqual(parcel.route_assignment_status, "assigned")
+
     def test_registration_rejects_route_for_different_destination(self):
         operator = TransportOperator.objects.create(
-            name="Approved Courier",
+            name="Another Courier",
             category=TransportOperator.Category.COURIER,
             parcel_service_confirmed=True,
         )
         other_town = Town.objects.create(county=self.county, name="Other Town")
         route = OperatorRoute.objects.create(
             operator=operator,
-            origin=self.town,
+            origin=self.origin_town,
             destination=other_town,
             service_type=TransportOperator.Category.COURIER,
             verification_status=OperatorRoute.Verification.CONFIRMED,
@@ -538,18 +574,8 @@ class ParcelRegistrationDestinationTests(TestCase):
             is_active=True,
         )
         from .forms import ParcelForm
-        form = ParcelForm(data={
-            "sender_name": "Sender Two",
-            "sender_phone": "+254700333333",
-            "recipient_name": "Recipient Two",
-            "recipient_phone": "+254700444444",
-            "description": "Parcel",
-            "weight_kg": "1.00",
-            "origin": self.origin.pk,
-            "destination_county": self.county.pk,
-            "destination_town": self.town.pk,
-            "operator_route": route.pk,
-            "delivery_fee": "50.00",
-        })
+        form = ParcelForm(data=self.registration_payload(
+            "+254700555555", "+254700666666", operator_route=route.pk
+        ))
         self.assertFalse(form.is_valid())
         self.assertIn("operator_route", form.errors)
