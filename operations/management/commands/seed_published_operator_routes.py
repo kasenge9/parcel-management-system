@@ -1,19 +1,18 @@
 from datetime import date
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from operations.models import (
     County,
     OperatorRoute,
     OperatorServicePoint,
+    Parcel,
     Town,
     TransportOperator,
 )
 
 
-# Retains the same 20 origin/destination entries previously loaded from the
-# Tahmeed and Modern Coast lists, now configured under MAKOS SACCO as requested.
 MAKOS_ROUTES = [
     ("Mumias", "Kakamega", "Mombasa"),
     ("Mombasa", "Mombasa", "Nairobi"),
@@ -34,7 +33,6 @@ MAKOS_ROUTES = [
     ("Mombasa", "Mombasa", "Lamu"),
     ("Nairobi", "Nairobi", "Nakuru"),
 ]
-
 
 DESTINATION_COUNTIES = {
     "Mombasa": "Mombasa",
@@ -60,21 +58,23 @@ def get_town(name, county_name):
 
 
 class Command(BaseCommand):
-    help = "Seed MAKOS SACCO and its configured parcel routes; deactivate other operators."
+    help = "Configure MAKOS SACCO as the only transport operator in the system."
 
     @transaction.atomic
     def handle(self, *args, **options):
-        # Keep historical records for audit purposes, but prevent any other
-        # operator, route, or service point from being offered for new parcels.
-        TransportOperator.objects.exclude(name="MAKOS SACCO").update(is_active=False)
-        OperatorRoute.objects.exclude(operator__name="MAKOS SACCO").update(
-            is_active=False,
-            parcel_service_confirmed=False,
+        # Preserve parcel records and tracking numbers, but remove references to
+        # legacy third-party routes/service points before deleting those records.
+        other_operator_routes = OperatorRoute.objects.exclude(operator__name="MAKOS SACCO")
+        other_service_points = OperatorServicePoint.objects.exclude(operator__name="MAKOS SACCO")
+
+        Parcel.objects.filter(operator_route__in=other_operator_routes).update(operator_route=None)
+        Parcel.objects.filter(operator_service_point__in=other_service_points).update(
+            operator_service_point=None
         )
-        OperatorServicePoint.objects.exclude(operator__name="MAKOS SACCO").update(
-            is_active=False,
-            accepts_parcels=False,
-        )
+
+        other_service_points.delete()
+        other_operator_routes.delete()
+        TransportOperator.objects.exclude(name="MAKOS SACCO").delete()
 
         makos, _ = TransportOperator.objects.update_or_create(
             name="MAKOS SACCO",
@@ -84,9 +84,9 @@ class Command(BaseCommand):
                 "parcel_service_confirmed": True,
                 "is_active": True,
                 "notes": (
-                    "Sole transport operator configured for this parcel management system. "
-                    "Routes use the same origin/destination list requested by the administrator. "
-                    "Confirm operational service and parcel handling with MAKOS before dispatch."
+                    "The sole operator in this system. MAKOS SACCO manages parcel "
+                    "registration, routing, branches, dispatch, delivery and tracking. "
+                    "The configured route list must be confirmed operationally by MAKOS."
                 ),
             },
         )
@@ -110,8 +110,9 @@ class Command(BaseCommand):
                     "parcel_service_confirmed": True,
                     "is_active": True,
                     "notes": (
-                        "Configured under MAKOS SACCO using the administrator-requested "
-                        "route list. Confirm actual service availability before dispatch."
+                        "Configured as a MAKOS SACCO internal route using the "
+                        "administrator-requested route list. Confirm actual service "
+                        "availability before dispatch."
                     ),
                 },
             )
@@ -119,7 +120,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"MAKOS SACCO configured. Processed {route_count} route entries. "
-                "All other operators and their routes/service points are inactive."
+                f"MAKOS SACCO is the only operator. Processed {route_count} route entries; "
+                "legacy third-party operators, routes and service points were removed."
             )
         )
