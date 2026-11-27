@@ -99,7 +99,7 @@ class Parcel(models.Model):
             ),
             models.CheckConstraint(
                 condition=Q(delivery_fee__gte=0),
-                name="parcel_delivery_fee_nonnegative",
+                name="parcel_fee_nonnegative",
             ),
         ]
 
@@ -255,7 +255,7 @@ class Dispatch(models.Model):
             models.CheckConstraint(
                 condition=Q(arrived_at__isnull=True)
                 | Q(arrived_at__gte=F("departure_time")),
-                name="dispatch_arrival_after_departure",
+                name="dispatch_arrival_after_depart",
             ),
         ]
 
