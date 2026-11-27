@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AnonymousUser, Group, Permission, User
+from django.contrib.auth.models import AnonymousUser, Group, User
 from django.core.exceptions import PermissionDenied
 from django.test import RequestFactory, TestCase
 
