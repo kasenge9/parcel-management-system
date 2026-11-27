@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Kenya Destinations | MAKOS SACCO{% endblock %}
+{% block content %}
+<section class="page-wrap"><div class="container">
+  <div class="eyebrow dark">KENYA-WIDE DIRECTORY</div>
+  <h1 class="display-5 mb-3">Destinations across Kenya</h1>
+  <p class="text-muted mb-4">Browse counties and selected towns recorded in the destination directory. A listed town is not automatically a MAKOS branch or an active delivery point.</p>
+  <div class="row g-3">
+    {% for county in counties %}
+      <div class="col-md-6 col-lg-4"><article class="content-card h-100">
+        <div class="eyebrow dark">COUNTY {{ county.code|stringformat:"02d" }}</div>
+        <h2>{{ county.name }}</h2>
+        <ul class="mb-0">{% for town in county.towns.all %}<li>{{ town.name }}</li>{% endfor %}</ul>
+      </article></div>
+    {% empty %}<div class="col-12"><div class="alert alert-info">The destination directory has not been seeded yet. An administrator can run the Kenya destination seed command.</div></div>{% endfor %}
+  </div>
+  <hr class="my-5">
+  <h2 class="h3 mb-3">Published operator routes</h2>
+  <p class="text-muted">Only routes marked published or directly confirmed are shown. Parcel acceptance is displayed separately and is not assumed from passenger service.</p>
+  <div class="table-responsive"><table class="table align-middle">
+    <thead><tr><th>Operator</th><th>From</th><th>To</th><th>Intermediate stops</th><th>Parcel service</th></tr></thead>
+    <tbody>{% for route in routes %}<tr>
+      <td>{{ route.operator.name }}</td><td>{{ route.origin }}</td><td>{{ route.destination }}</td>
+      <td>{% for stop in route.stops.all %}{{ stop.town.name }}{% if not forloop.last %}, {% endif %}{% empty %}Not published{% endfor %}</td>
+      <td>{% if route.parcel_service_confirmed %}Confirmed{% else %}Not confirmed{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="5" class="text-muted">No operator routes have been reviewed and published in the application yet.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div></section>
+{% endblock %}
