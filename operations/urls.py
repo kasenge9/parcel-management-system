@@ -11,4 +11,6 @@ urlpatterns = [
     path("parcels/new/", views.parcel_create, name="parcel_create"),
     path("parcels/<int:pk>/", views.parcel_detail, name="parcel_detail"),
     path("parcels/<int:pk>/status/", views.update_status, name="update_status"),
+    path("staff/users/", views.staff_users, name="staff_users"),
+    path("staff/users/new/", views.staff_user_create, name="staff_user_create"),
 ]

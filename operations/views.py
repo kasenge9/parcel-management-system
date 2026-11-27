@@ -1,10 +1,33 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.decorators import login_required, permission_required
 from django.db import transaction
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
+from django import forms
+
+from .decorators import role_required
 from .forms import ParcelForm
 from .models import Parcel, Payment, TrackingEvent
+from .roles import role_names
+
+
+class StaffUserCreationForm(UserCreationForm):
+    role = forms.ChoiceField(choices=[(name, name) for name in role_names()])
+
+    class Meta(UserCreationForm.Meta):
+        model = get_user_model()
+        fields = ("username", "first_name", "last_name", "email")
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        role = self.cleaned_data["role"]
+        user.is_staff = role != "Customer"
+        if commit:
+            user.save()
+            user.groups.set([__import__("django.contrib.auth.models", fromlist=["Group"]).Group.objects.get(name=role)])
+        return user
 
 
 def home(request):
@@ -30,6 +53,7 @@ def track_parcel(request):
 
 
 @login_required
+@permission_required("operations.view_parcel", raise_exception=True)
 def dashboard(request):
     counts = {
         "total": Parcel.objects.count(),
@@ -41,12 +65,18 @@ def dashboard(request):
             Parcel.Status.READY_COLLECTION,
         ]).count(),
     }
-    counts["revenue"] = Payment.objects.aggregate(total=Sum("amount"))["total"] or 0
+    if request.user.has_perm("operations.view_payment"):
+        counts["revenue"] = Payment.objects.aggregate(total=Sum("amount"))["total"] or 0
     recent = Parcel.objects.select_related("sender", "recipient", "origin", "destination").order_by("-created_at")[:8]
-    return render(request, "operations/dashboard.html", {"counts": counts, "recent_parcels": recent})
+    return render(request, "operations/dashboard.html", {
+        "counts": counts,
+        "recent_parcels": recent,
+        "can_register_parcels": request.user.has_perm("operations.add_parcel"),
+    })
 
 
 @login_required
+@permission_required("operations.view_parcel", raise_exception=True)
 def parcel_list(request):
     parcels = Parcel.objects.select_related("sender", "recipient", "origin", "destination").order_by("-created_at")
     query = request.GET.get("q", "").strip()
@@ -56,6 +86,7 @@ def parcel_list(request):
 
 
 @login_required
+@permission_required("operations.add_parcel", raise_exception=True)
 def parcel_create(request):
     form = ParcelForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -74,6 +105,7 @@ def parcel_create(request):
 
 
 @login_required
+@permission_required("operations.view_parcel", raise_exception=True)
 def parcel_detail(request, pk):
     parcel = get_object_or_404(
         Parcel.objects.select_related("sender", "recipient", "origin", "destination"),
@@ -82,10 +114,12 @@ def parcel_detail(request, pk):
     return render(request, "operations/parcel_detail.html", {
         "parcel": parcel,
         "events": parcel.tracking_events.select_related("created_by"),
+        "can_change_parcel": request.user.has_perm("operations.change_parcel"),
     })
 
 
 @login_required
+@permission_required("operations.change_parcel", raise_exception=True)
 def update_status(request, pk):
     parcel = get_object_or_404(Parcel, pk=pk)
     if request.method == "POST":
@@ -112,3 +146,21 @@ def update_status(request, pk):
                 )
             messages.success(request, "Status and tracking history updated.")
     return redirect("parcel_detail", pk=parcel.pk)
+
+
+@login_required
+@role_required("System Administrator")
+def staff_users(request):
+    users = get_user_model().objects.prefetch_related("groups").order_by("username")
+    return render(request, "operations/staff_users.html", {"staff_users": users})
+
+
+@login_required
+@role_required("System Administrator")
+def staff_user_create(request):
+    form = StaffUserCreationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        messages.success(request, f"Account {user.username} created with the {form.cleaned_data['role']} role.")
+        return redirect("staff_users")
+    return render(request, "operations/staff_user_form.html", {"form": form})
