@@ -20,6 +20,7 @@ from .models import (
     TrackingEvent,
     TransportOperator,
     OperatorRoute,
+    OperatorServicePoint,
     County,
     Town,
     Vehicle,
@@ -556,6 +557,34 @@ class ParcelRegistrationDestinationTests(TestCase):
         parcel = Parcel.objects.get(sender__phone="+254700333333")
         self.assertEqual(parcel.operator_route, route)
         self.assertEqual(parcel.route_assignment_status, "assigned")
+
+    def test_registration_can_select_verified_receiving_courier_point(self):
+        operator = TransportOperator.objects.create(
+            name="Fargo Test Courier",
+            category=TransportOperator.Category.COURIER,
+            parcel_service_confirmed=True,
+        )
+        service_point = OperatorServicePoint.objects.create(
+            operator=operator,
+            town=self.town,
+            source_url="https://example.com/branches",
+            is_verified=True,
+            accepts_parcels=True,
+            is_active=True,
+        )
+        self.client.force_login(self.clerk)
+        response = self.client.post(
+            reverse("parcel_create"),
+            self.registration_payload(
+                "+254700777777", "+254700888888",
+                operator_service_point=service_point.pk,
+            ),
+        )
+        self.assertEqual(response.status_code, 302)
+        parcel = Parcel.objects.get(sender__phone="+254700777777")
+        self.assertEqual(parcel.operator_service_point, service_point)
+        self.assertIsNone(parcel.operator_route)
+        self.assertEqual(parcel.route_assignment_status, "awaiting_route_assignment")
 
     def test_registration_rejects_route_for_different_destination(self):
         operator = TransportOperator.objects.create(
