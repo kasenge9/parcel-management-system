@@ -134,7 +134,31 @@ def parcel_create(request):
         return redirect("parcel_detail", pk=parcel.pk)
     towns = Town.objects.values("id", "county_id")
     town_county_map = {str(town["id"]): str(town["county_id"]) for town in towns}
-    return render(request, "operations/parcel_form.html", {"form": form, "town_county_map": town_county_map})
+    branches = Branch.objects.filter(is_active=True).values("id", "town_id")
+    branch_town_map = {str(branch["id"]): str(branch["town_id"] or "") for branch in branches}
+    eligible_routes = OperatorRoute.objects.filter(
+        is_active=True,
+        parcel_service_confirmed=True,
+        operator__is_active=True,
+        operator__parcel_service_confirmed=True,
+        verification_status__in=[
+            OperatorRoute.Verification.PUBLISHED,
+            OperatorRoute.Verification.CONFIRMED,
+        ],
+    ).values("id", "origin_id", "destination_id")
+    route_map = {
+        str(route["id"]): {
+            "origin": str(route["origin_id"]),
+            "destination": str(route["destination_id"]),
+        }
+        for route in eligible_routes
+    }
+    return render(request, "operations/parcel_form.html", {
+        "form": form,
+        "town_county_map": town_county_map,
+        "branch_town_map": branch_town_map,
+        "route_map": route_map,
+    })
 
 
 @login_required
