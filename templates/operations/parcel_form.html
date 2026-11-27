@@ -1,1 +1,75 @@
-{% extends 'base.html' %}{% block title %}Register parcel | MAKOS SACCO{% endblock %}{% block content %}<main class="page-wrap"><div class="container narrow"><a href="{% url 'parcel_list' %}">← Back to parcels</a><h1 class="mt-3">Register a parcel</h1><p class="text-muted">A unique tracking code will be generated when you save.</p><form method="post" class="panel">{% csrf_token %}{% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}<div class="row g-3">{% for field in form %}<div class="col-md-6"><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>{% endfor %}</div><hr><h2>Sender and recipient</h2><div class="row g-3">{% for field in form %}{% if field.name == 'sender_name' or field.name == 'sender_phone' or field.name == 'recipient_name' or field.name == 'recipient_phone' %}<div class="col-md-6"><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>{% endif %}{% endfor %}</div><button class="btn btn-dark mt-4">Register parcel</button></form></div></main>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Register parcel | MAKOS SACCO{% endblock %}
+{% block content %}
+<main class="page-wrap">
+  <div class="container narrow">
+    <a href="{% url 'parcel_list' %}">← Back to parcels</a>
+    <h1 class="mt-3">Register a parcel</h1>
+    <p class="text-muted">A unique tracking code will be generated when you save.</p>
+
+    <form method="post" class="panel" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+      <h2>Parcel details</h2>
+      <div class="row g-3">
+        {% for field in form %}
+          {% if field.name == 'description' or field.name == 'weight_kg' or field.name == 'origin' or field.name == 'destination' or field.name == 'delivery_fee' %}
+            <div class="col-md-6">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+              {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <hr>
+      <h2>Sender and recipient</h2>
+      <div class="row g-3">
+        {% for field in form %}
+          {% if field.name == 'sender_name' or field.name == 'sender_phone' or field.name == 'recipient_name' or field.name == 'recipient_phone' %}
+            <div class="col-md-6">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <button class="btn btn-dark mt-4">Register parcel</button>
+    </form>
+  </div>
+</main>
+<script>
+  (() => {
+    const description = document.getElementById('id_description');
+    const weight = document.getElementById('id_weight_kg');
+    const fee = document.getElementById('id_delivery_fee');
+    if (!description || !weight || !fee) return;
+
+    const rules = JSON.parse(fee.dataset.pricingRules);
+    const keywords = JSON.parse(fee.dataset.categoryKeywords);
+    const categoryFor = (text) => {
+      const words = new Set(text.toLowerCase().match(/[a-z0-9]+/g) || []);
+      for (const category of ['fragile', 'electronics', 'clothing', 'documents']) {
+        if (keywords[category].some((word) => words.has(word))) return category;
+      }
+      return 'general';
+    };
+    const updateEstimate = () => {
+      const kg = Number(weight.value);
+      if (!Number.isFinite(kg) || kg <= 0) {
+        fee.value = '';
+        return;
+      }
+      const rule = rules[categoryFor(description.value)];
+      fee.value = (Number(rule.base) + Number(rule.per_kg) * kg).toFixed(2);
+    };
+    description.addEventListener('input', updateEstimate);
+    weight.addEventListener('input', updateEstimate);
+    updateEstimate();
+  })();
+</script>
+{% endblock %}
