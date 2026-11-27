@@ -8,6 +8,24 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterField(
+            model_name="dispatchitem",
+            name="dispatch",
+            field=models.ForeignKey(
+                on_delete=models.CASCADE,
+                related_name="dispatch_items",
+                to="operations.dispatch",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="dispatchitem",
+            name="parcel",
+            field=models.ForeignKey(
+                on_delete=models.PROTECT,
+                related_name="dispatch_items",
+                to="operations.parcel",
+            ),
+        ),
         migrations.AddConstraint(
             model_name="parcel",
             constraint=models.CheckConstraint(
@@ -19,7 +37,7 @@ class Migration(migrations.Migration):
             model_name="parcel",
             constraint=models.CheckConstraint(
                 condition=Q(delivery_fee__gte=0),
-                name="parcel_delivery_fee_nonnegative",
+                name="parcel_fee_nonnegative",
             ),
         ),
         migrations.AddConstraint(
@@ -34,7 +52,7 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(
                 condition=Q(arrived_at__isnull=True)
                 | Q(arrived_at__gte=F("departure_time")),
-                name="dispatch_arrival_after_departure",
+                name="dispatch_arrival_after_depart",
             ),
         ),
     ]
