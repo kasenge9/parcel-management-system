@@ -1,1 +1,58 @@
-{% extends 'base.html' %}{% block title %}Register parcel | MAKOS SACCO{% endblock %}{% block content %}<main class="page-wrap"><div class="container narrow"><a href="{% url 'parcel_list' %}">← Back to parcels</a><h1 class="mt-3">Register a parcel</h1><p class="text-muted">A unique tracking code will be generated when you save.</p><form method="post" class="panel">{% csrf_token %}{% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}<div class="row g-3">{% for field in form %}<div class="col-md-6"><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>{% endfor %}</div><hr><h2>Sender and recipient</h2><div class="row g-3">{% for field in form %}{% if field.name == 'sender_name' or field.name == 'sender_phone' or field.name == 'recipient_name' or field.name == 'recipient_phone' %}<div class="col-md-6"><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>{% endif %}{% endfor %}</div><button class="btn btn-dark mt-4">Register parcel</button></form></div></main>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Register parcel | MAKOS SACCO{% endblock %}
+{% block content %}
+<main class="page-wrap"><div class="container narrow">
+  <a href="{% url 'parcel_list' %}">← Back to parcels</a>
+  <h1 class="mt-3">Register a parcel</h1>
+  <p class="text-muted">A unique tracking code will be generated when you save. You can register a destination even if a delivery route has not yet been assigned.</p>
+  <form method="post" class="panel">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <h2>Sender and recipient</h2>
+    <div class="row g-3">
+      {% for field in form %}
+        {% if field.name == 'sender_name' or field.name == 'sender_phone' or field.name == 'recipient_name' or field.name == 'recipient_phone' %}
+          <div class="col-md-6"><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <hr><h2>Parcel information</h2>
+    <div class="row g-3">
+      {% for field in form %}
+        {% if field.name == 'description' or field.name == 'weight_kg' or field.name == 'delivery_fee' %}
+          <div class="col-md-6"><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <hr><h2>Delivery destination</h2>
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label" for="{{ form.origin.id_for_label }}">Dispatch branch / origin</label>{{ form.origin }}{% for error in form.origin.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
+      <div class="col-md-6"><label class="form-label" for="{{ form.destination_county.id_for_label }}">Destination county</label>{{ form.destination_county }}{% for error in form.destination_county.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
+      <div class="col-md-6"><label class="form-label" for="{{ form.destination_town.id_for_label }}">Destination town</label>{{ form.destination_town }}{% for error in form.destination_town.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
+      <div class="col-md-6"><label class="form-label" for="{{ form.operator_route.id_for_label }}">Delivery operator / route (optional)</label>{{ form.operator_route }}{% for error in form.operator_route.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}<small class="text-muted">Only active routes confirmed for parcel service are selectable. If none applies, leave this blank and assign a route later.</small></div>
+    </div>
+    <button class="btn btn-dark mt-4">Register parcel</button>
+  </form>
+</div></main>
+{{ town_county_map|json_script:"town-county-map" }}
+<script>
+(function () {
+  const county = document.getElementById("id_destination_county");
+  const town = document.getElementById("id_destination_town");
+  const mappingNode = document.getElementById("town-county-map");
+  if (!county || !town || !mappingNode) return;
+  const townCounty = JSON.parse(mappingNode.textContent);
+  function filterTowns(clearInvalid) {
+    const selectedCounty = county.value;
+    Array.from(town.options).forEach(function (option) {
+      if (!option.value) return;
+      const visible = !selectedCounty || townCounty[option.value] === selectedCounty;
+      option.hidden = !visible;
+      if (!visible && option.selected && clearInvalid) town.value = "";
+    });
+  }
+  county.addEventListener("change", function () { filterTowns(true); });
+  filterTowns(false);
+})();
+</script>
+{% endblock %}
