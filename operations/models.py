@@ -113,8 +113,6 @@ class OperatorRoute(models.Model):
             errors["is_active"] = "Verify a route before activating it."
         if self.parcel_service_confirmed and not self.operator.parcel_service_confirmed:
             errors["parcel_service_confirmed"] = "Confirm parcel service at operator level first."
-        if self.parcel_service_confirmed and self.service_type == TransportOperator.Category.PASSENGER:
-            errors["parcel_service_confirmed"] = "Passenger routes cannot carry parcels until the operator confirms this service."
         if errors:
             raise ValidationError(errors)
 
