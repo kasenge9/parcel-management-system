@@ -390,3 +390,56 @@ class ForeignKeyDeletionPolicyTests(TestCase):
         parcel_id = self.parcel.pk
         self.parcel.delete()
         self.assertFalse(Parcel.objects.filter(pk=parcel_id).exists())
+
+
+
+class ParcelTrackingWorkflowTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        sync_role_groups(sender=None)
+        cls.origin = Branch.objects.create(name="Tracking Mombasa", location="Mombasa")
+        cls.destination = Branch.objects.create(name="Tracking Nairobi", location="Nairobi")
+        cls.sender = Customer.objects.create(full_name="Sender Person", phone="+254700000001")
+        cls.recipient = Customer.objects.create(full_name="Recipient Person", phone="+254700000002")
+        cls.parcel = Parcel.objects.create(sender=cls.sender, recipient=cls.recipient, description="Documents", weight_kg=Decimal("1.00"), origin=cls.origin, destination=cls.destination, delivery_fee=Decimal("150.00"))
+        cls.dispatcher = get_user_model().objects.create_user(username="tracking-dispatcher", password="StrongPass!234")
+        cls.dispatcher.groups.add(Group.objects.get(name="Dispatcher"))
+        cls.clerk = get_user_model().objects.create_user(username="tracking-clerk", password="StrongPass!234")
+        cls.clerk.groups.add(Group.objects.get(name="Parcel Clerk"))
+
+    def test_dispatcher_can_record_status_location_and_note(self):
+        self.client.force_login(self.dispatcher)
+        response = self.client.post(reverse("update_status", args=[self.parcel.pk]), {"status": Parcel.Status.IN_TRANSIT, "location": "Voi transit stop", "note": "Vehicle departed Mombasa"})
+        self.assertEqual(response.status_code, 302)
+        self.parcel.refresh_from_db()
+        event = self.parcel.tracking_events.get()
+        self.assertEqual(self.parcel.status, Parcel.Status.IN_TRANSIT)
+        self.assertEqual(event.location, "Voi transit stop")
+        self.assertEqual(event.note, "Vehicle departed Mombasa")
+        self.assertEqual(event.created_by, self.dispatcher)
+
+    def test_invalid_status_does_not_change_parcel(self):
+        self.client.force_login(self.dispatcher)
+        self.client.post(reverse("update_status", args=[self.parcel.pk]), {"status": "invalid", "location": "Voi", "note": "Invalid"})
+        self.parcel.refresh_from_db()
+        self.assertEqual(self.parcel.status, Parcel.Status.REGISTERED)
+        self.assertEqual(self.parcel.tracking_events.count(), 0)
+
+    def test_duplicate_status_does_not_create_event(self):
+        self.client.force_login(self.dispatcher)
+        self.client.post(reverse("update_status", args=[self.parcel.pk]), {"status": Parcel.Status.REGISTERED, "location": "Mombasa", "note": ""})
+        self.assertEqual(self.parcel.tracking_events.count(), 0)
+
+    def test_parcel_clerk_cannot_write_tracking_updates(self):
+        self.client.force_login(self.clerk)
+        response = self.client.post(reverse("update_status", args=[self.parcel.pk]), {"status": Parcel.Status.IN_TRANSIT, "location": "Voi", "note": ""})
+        self.assertEqual(response.status_code, 403)
+        self.parcel.refresh_from_db()
+        self.assertEqual(self.parcel.status, Parcel.Status.REGISTERED)
+
+    def test_public_tracking_displays_notes_but_not_private_contacts(self):
+        TrackingEvent.objects.create(parcel=self.parcel, status=Parcel.Status.REGISTERED, location="Mombasa", note="Parcel accepted")
+        response = self.client.post(reverse("track"), {"tracking_number": self.parcel.tracking_number.lower()})
+        self.assertContains(response, "Parcel accepted")
+        self.assertNotContains(response, self.sender.phone)
+        self.assertNotContains(response, self.recipient.phone)
